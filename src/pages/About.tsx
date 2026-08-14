@@ -9,8 +9,7 @@ import {
   CheckCircle,
   Clock,
   ChevronDown,
-  Gift,
-  Award
+  Gift
 } from 'lucide-react';
 import { BUSINESS_DETAILS } from '../lib/constants';
 import { getWhatsAppLink, getPhoneCallLink, getDirectionsLink } from '../utils/whatsapp';

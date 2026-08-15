@@ -16,25 +16,15 @@ export const isSupabaseConfigured = (): boolean => {
 
   if (!url || !key) return false;
 
-  const lowerUrl = url.toLowerCase();
-  const lowerKey = key.toLowerCase();
+  const hasValidProtocol = url.startsWith('https://') || url.startsWith('http://');
+  const isPlaceholderUrl = url.includes('your-supabase-project') || url.includes('placeholder-project') || url.includes('your-project');
+  const isPlaceholderKey = key.includes('your-supabase-anon-key') || key.includes('placeholder-anon-key') || key.includes('your-anon');
 
-  const isPlaceholderUrl = 
-    lowerUrl.includes('placeholder') || 
-    lowerUrl.includes('your-project') || 
-    lowerUrl.includes('your-supabase') || 
-    lowerUrl.includes('example.co');
-
-  const isPlaceholderKey = 
-    lowerKey.includes('placeholder') || 
-    lowerKey.includes('your-actual') || 
-    lowerKey.includes('your-anon');
-
-  return !isPlaceholderUrl && !isPlaceholderKey && (url.startsWith('https://') || url.startsWith('http://'));
+  return hasValidProtocol && !isPlaceholderUrl && !isPlaceholderKey;
 };
 
-const supabaseUrl = getSupabaseUrl() || 'https://placeholder-project.supabase.co';
-const supabaseAnonKey = getSupabaseAnonKey() || 'placeholder-anon-key';
+const supabaseUrl = isSupabaseConfigured() ? getSupabaseUrl() : 'https://placeholder-project.supabase.co';
+const supabaseAnonKey = isSupabaseConfigured() ? getSupabaseAnonKey() : 'placeholder-anon-key';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
@@ -43,4 +33,5 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true
   }
 });
+
 

@@ -38,8 +38,6 @@ export const AdminLogin: React.FC = () => {
     if (res.error) {
       setError(res.error);
       setLoading(false);
-    } else {
-      navigate('/admin/dashboard', { replace: true });
     }
   };
 

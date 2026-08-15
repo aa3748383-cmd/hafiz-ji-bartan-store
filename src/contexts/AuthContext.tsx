@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { User, Session } from '@supabase/supabase-js';
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured, getSupabaseUrl } from '../lib/supabase';
 
 interface AuthContextType {
   user: User | null;
@@ -50,7 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, pass: string): Promise<{ error: string | null }> => {
     if (!isConfigured) {
       return { 
-        error: 'Supabase credentials are not configured yet. Please open .env.local and replace the placeholder URL & Anon Key with your real project credentials from Supabase Dashboard.' 
+        error: 'Supabase credentials are not configured in environment variables. Please check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your environment configuration.' 
       };
     }
 
@@ -63,7 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) {
         if (error.message.includes('Failed to fetch')) {
           return { 
-            error: `Connection Error (Failed to fetch): Unable to reach Supabase project at ${import.meta.env.VITE_SUPABASE_URL}. Please verify your Project URL and Anon key in .env.local and check that your Supabase project is active.` 
+            error: `Connection Error (Failed to fetch): Unable to reach Supabase project at ${getSupabaseUrl()}. Please verify VITE_SUPABASE_URL & VITE_SUPABASE_ANON_KEY environment variables and check that your Supabase project is active.` 
           };
         }
         return { error: error.message };
@@ -75,7 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (err: any) {
       if (err.message && err.message.includes('Failed to fetch')) {
         return { 
-          error: `Connection Error (Failed to fetch): Unable to connect to Supabase at ${import.meta.env.VITE_SUPABASE_URL}. Please check VITE_SUPABASE_URL & VITE_SUPABASE_ANON_KEY in .env.local.` 
+          error: `Connection Error (Failed to fetch): Unable to connect to Supabase at ${getSupabaseUrl()}. Please check VITE_SUPABASE_URL & VITE_SUPABASE_ANON_KEY in environment variables.` 
         };
       }
       return { error: err.message || 'An error occurred during login.' };

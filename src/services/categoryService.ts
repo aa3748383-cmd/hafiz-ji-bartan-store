@@ -13,16 +13,38 @@ export const INITIAL_CATEGORIES: Category[] = [
   { id: '8', name: 'Other Household Items', slug: 'other-household-items', description: 'Buckets, tubs, cleaning accessories, and general household items.', image_url: 'https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=600&q=80' },
 ];
 
+const DEFAULT_TIMEOUT_MS = 4000;
+
+const withTimeout = <T>(promiseLike: PromiseLike<T>, timeoutMs: number = DEFAULT_TIMEOUT_MS): Promise<T> => {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`Supabase category query timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+
+    Promise.resolve(promiseLike)
+      .then((res) => {
+        clearTimeout(timer);
+        resolve(res);
+      })
+      .catch((err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+  });
+};
+
 export const getCategories = async (): Promise<{ data: Category[]; error: string | null }> => {
   if (!isSupabaseConfigured()) {
     return { data: INITIAL_CATEGORIES, error: null };
   }
 
   try {
-    const { data, error } = await supabase
+    const query = supabase
       .from('categories')
       .select('*')
       .order('name', { ascending: true });
+
+    const { data, error } = await withTimeout(query);
 
     if (error) throw error;
     
@@ -33,8 +55,8 @@ export const getCategories = async (): Promise<{ data: Category[]; error: string
 
     return { data: data as Category[], error: null };
   } catch (err: any) {
-    console.error('Error fetching categories from Supabase:', err);
-    return { data: INITIAL_CATEGORIES, error: err.message || 'Failed to fetch categories' };
+    console.warn('Supabase categories query failed/timed out, using fallback:', err?.message || err);
+    return { data: INITIAL_CATEGORIES, error: null };
   }
 };
 
@@ -45,17 +67,20 @@ export const getCategoryBySlug = async (slug: string): Promise<{ data: Category 
   }
 
   try {
-    const { data, error } = await supabase
+    const query = supabase
       .from('categories')
       .select('*')
       .eq('slug', slug)
       .single();
 
+    const { data, error } = await withTimeout(query);
+
     if (error) throw error;
     return { data: data as Category, error: null };
   } catch (err: any) {
+    console.warn('Supabase category slug query failed/timed out, using fallback:', err?.message || err);
     const fallback = INITIAL_CATEGORIES.find(c => c.slug === slug) || null;
-    return { data: fallback, error: err.message };
+    return { data: fallback, error: null };
   }
 };
 

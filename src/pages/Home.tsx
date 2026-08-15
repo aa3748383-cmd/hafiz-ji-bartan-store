@@ -132,6 +132,8 @@ export const Home: React.FC = () => {
                   <img
                     src="https://images.unsplash.com/photo-1610701596007-11502861dcfa?auto=format&fit=crop&w=800&q=80"
                     alt="Hafiz Ji Bartan Store Stainless Steel Utensils"
+                    fetchPriority="high"
+                    decoding="async"
                     className="w-full h-80 sm:h-96 object-cover rounded-2xl"
                   />
                   <div className="absolute bottom-6 left-6 right-6 p-4 rounded-2xl glass-card text-stone-900 shadow-lg">
@@ -213,6 +215,7 @@ export const Home: React.FC = () => {
                   src={category.image_url || 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=600&q=80'}
                   alt={category.name}
                   loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
               </div>

@@ -25,7 +25,7 @@ export const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ childr
       {!isConfigured && (
         <div className="bg-amber-500 text-stone-950 px-4 py-2 text-xs font-bold text-center flex items-center justify-center gap-2">
           <ShieldCheck className="w-4 h-4" />
-          <span>Demo Admin Mode (Supabase Auth environment variables pending setup in .env)</span>
+          <span>Demo Admin Mode (Supabase Auth environment variables VITE_SUPABASE_URL & VITE_SUPABASE_ANON_KEY pending setup)</span>
         </div>
       )}
       {children}

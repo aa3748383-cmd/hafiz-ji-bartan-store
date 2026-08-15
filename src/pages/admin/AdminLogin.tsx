@@ -68,7 +68,7 @@ export const AdminLogin: React.FC = () => {
               <span>Supabase Environment Setup Required</span>
             </p>
             <p className="text-[11px] leading-relaxed">
-              Add your actual <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> to <code>.env</code> file to connect your Supabase Auth user.
+              Add your actual <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> environment variables to connect your Supabase Auth user.
             </p>
           </div>
         )}

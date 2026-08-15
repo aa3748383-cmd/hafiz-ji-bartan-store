@@ -1,13 +1,23 @@
 import { createClient } from '@supabase/supabase-js';
 
-const rawUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const rawKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+export const getSupabaseUrl = (): string => {
+  const url = import.meta.env.VITE_SUPABASE_URL || '';
+  return url.trim().replace(/^["']|["']$/g, '');
+};
+
+export const getSupabaseAnonKey = (): string => {
+  const key = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+  return key.trim().replace(/^["']|["']$/g, '');
+};
 
 export const isSupabaseConfigured = (): boolean => {
-  if (!rawUrl || !rawKey) return false;
+  const url = getSupabaseUrl();
+  const key = getSupabaseAnonKey();
 
-  const lowerUrl = rawUrl.toLowerCase();
-  const lowerKey = rawKey.toLowerCase();
+  if (!url || !key) return false;
+
+  const lowerUrl = url.toLowerCase();
+  const lowerKey = key.toLowerCase();
 
   const isPlaceholderUrl = 
     lowerUrl.includes('placeholder') || 
@@ -20,11 +30,11 @@ export const isSupabaseConfigured = (): boolean => {
     lowerKey.includes('your-actual') || 
     lowerKey.includes('your-anon');
 
-  return !isPlaceholderUrl && !isPlaceholderKey && (rawUrl.startsWith('https://') || rawUrl.startsWith('http://'));
+  return !isPlaceholderUrl && !isPlaceholderKey && (url.startsWith('https://') || url.startsWith('http://'));
 };
 
-const supabaseUrl = isSupabaseConfigured() ? rawUrl : 'https://placeholder-project.supabase.co';
-const supabaseAnonKey = isSupabaseConfigured() ? rawKey : 'placeholder-anon-key';
+const supabaseUrl = getSupabaseUrl() || 'https://placeholder-project.supabase.co';
+const supabaseAnonKey = getSupabaseAnonKey() || 'placeholder-anon-key';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
@@ -33,3 +43,4 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true
   }
 });
+

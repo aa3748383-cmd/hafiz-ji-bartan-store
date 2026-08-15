@@ -69,6 +69,26 @@ export const INITIAL_DEMO_PRODUCTS: Product[] = [
   }
 ];
 
+const DEFAULT_TIMEOUT_MS = 4000;
+
+const withTimeout = <T>(promiseLike: PromiseLike<T>, timeoutMs: number = DEFAULT_TIMEOUT_MS): Promise<T> => {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`Supabase query timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+
+    Promise.resolve(promiseLike)
+      .then((res) => {
+        clearTimeout(timer);
+        resolve(res);
+      })
+      .catch((err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+  });
+};
+
 export const getProducts = async (filters?: Partial<ProductFilters>): Promise<{ data: Product[]; error: string | null }> => {
   if (!isSupabaseConfigured()) {
     let result = [...INITIAL_DEMO_PRODUCTS];
@@ -128,7 +148,7 @@ export const getProducts = async (filters?: Partial<ProductFilters>): Promise<{ 
         break;
     }
 
-    const { data, error } = await query;
+    const { data, error } = await withTimeout(query);
 
     if (error) throw error;
     
@@ -142,8 +162,8 @@ export const getProducts = async (filters?: Partial<ProductFilters>): Promise<{ 
 
     return { data: data as Product[], error: null };
   } catch (err: any) {
-    console.error('Error fetching products from Supabase:', err);
-    return { data: INITIAL_DEMO_PRODUCTS, error: err.message || 'Failed to fetch products' };
+    console.warn('Supabase query failed/timed out, using demo products fallback:', err?.message || err);
+    return { data: INITIAL_DEMO_PRODUCTS, error: null };
   }
 };
 
@@ -154,17 +174,20 @@ export const getProductBySlug = async (slug: string): Promise<{ data: Product | 
   }
 
   try {
-    const { data, error } = await supabase
+    const query = supabase
       .from('products')
       .select('*, category:categories(*)')
       .eq('slug', slug)
       .single();
 
+    const { data, error } = await withTimeout(query);
+
     if (error) throw error;
     return { data: data as Product, error: null };
   } catch (err: any) {
+    console.warn('Supabase product slug query failed/timed out, using fallback:', err?.message || err);
     const fallback = INITIAL_DEMO_PRODUCTS.find(p => p.slug === slug) || null;
-    return { data: fallback, error: err.message };
+    return { data: fallback, error: null };
   }
 };
 

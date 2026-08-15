@@ -28,15 +28,21 @@ export const Footer: React.FC = () => {
               Your trusted destination for premium stainless steel bartan, heavy aluminium utensils, daily pressure cookers, and wedding gift sets in Lalganj, Azamgarh.
             </p>
 
-            <div className="pt-2 text-xs text-stone-400 space-y-1.5 border-t border-stone-800/80">
+            <div className="pt-2 text-xs text-stone-400 space-y-2 border-t border-stone-800/80">
               <p className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
                 <strong className="text-stone-200">Owner:</strong> {BUSINESS_DETAILS.owner}
               </p>
-              <p className="flex items-center gap-2">
-                <Clock className="w-3.5 h-3.5 text-amber-400" />
-                <span className="text-stone-300">Mon - Sat: 9:00 AM - 9:00 PM</span>
-              </p>
+              <div className="flex items-start gap-2">
+                <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                <div className="space-y-0.5 text-stone-300">
+                  <p>Mon - Fri: 9:00 AM - 9:00 PM</p>
+                  <p className="text-rose-400 font-medium flex items-center gap-1.5 text-[11px]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                    Saturday: Closed
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -140,8 +146,13 @@ export const Footer: React.FC = () => {
 
         {/* BOTTOM COPYRIGHT & CREDITS */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-stone-500">
-          <p>© {new Date().getFullYear()} {BUSINESS_DETAILS.name}. All rights reserved.</p>
-          <p className="flex items-center gap-1">
+          <div className="space-y-1 text-center sm:text-left">
+            <p>© {new Date().getFullYear()} {BUSINESS_DETAILS.name}. All rights reserved.</p>
+            <p className="text-[11px] text-stone-400/90 font-normal">
+              Designed &amp; Developed by <span className="text-stone-200 font-medium tracking-wide">Mohammad Anas Ansari</span>
+            </p>
+          </div>
+          <p className="flex items-center gap-1 text-center sm:text-right">
             <span>Store Proprietor:</span>
             <strong className="text-stone-300 font-medium">{BUSINESS_DETAILS.owner}</strong>
             <span>• Lalganj, Azamgarh, UP</span>

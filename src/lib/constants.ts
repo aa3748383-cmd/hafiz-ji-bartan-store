@@ -14,6 +14,13 @@ export const BUSINESS_DETAILS: BusinessInfo = {
   googleMapsUrl: 'https://www.google.com/maps/search/?api=1&query=Hafiz+Ji+Bartan+Store+Main+Road+Lalganj+Azamgarh+Uttar+Pradesh+India'
 };
 
+export const STORE_HOURS = {
+  weekdays: 'Mon - Fri: 9:00 AM - 9:00 PM',
+  saturday: 'Saturday: Closed',
+  sunday: 'Sunday: Closed',
+  displayHours: 'Mon - Fri: 9:00 AM - 9:00 PM | Sat: Closed',
+};
+
 export const NAV_LINKS = [
   { name: 'Home', path: '/' },
   { name: 'Products', path: '/products' },

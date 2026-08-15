@@ -104,6 +104,13 @@ export const EnquiryModal: React.FC<EnquiryModalProps> = ({ product, isOpen, onC
               className="w-full p-3 rounded-xl border border-stone-300 text-xs text-stone-800 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 outline-hidden"
             />
           </div>
+
+          {new Date().getDay() === 6 && (
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-rose-600 shrink-0"></span>
+              <span>Note: Store is closed today (Saturday). Enquiries will be addressed on Monday.</span>
+            </div>
+          )}
         </div>
 
         {/* ACTION BUTTONS */}

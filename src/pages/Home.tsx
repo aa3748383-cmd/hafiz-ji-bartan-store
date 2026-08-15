@@ -334,10 +334,16 @@ export const Home: React.FC = () => {
                 <Phone className="w-5 h-5 text-amber-800 shrink-0" />
                 <span><strong>Proprietor:</strong> {BUSINESS_DETAILS.owner} ({BUSINESS_DETAILS.formattedPhone})</span>
               </p>
-              <p className="flex items-center gap-2 text-stone-600">
-                <Clock className="w-5 h-5 text-amber-800 shrink-0" />
-                <span><strong>Shop Timing:</strong> Open Monday to Saturday (9:00 AM - 9:00 PM)</span>
-              </p>
+              <div className="flex items-start gap-2 text-stone-600">
+                <Clock className="w-5 h-5 text-amber-800 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p><strong>Shop Timing:</strong> Mon - Fri (9:00 AM - 9:00 PM)</p>
+                  <p className="text-xs font-semibold text-rose-700 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-rose-600"></span>
+                    Saturday: Closed
+                  </p>
+                </div>
+              </div>
             </div>
 
             <div className="pt-4 flex flex-wrap gap-3">

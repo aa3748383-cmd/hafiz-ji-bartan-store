@@ -68,9 +68,15 @@ export const Contact: React.FC = () => {
             <p className="text-stone-600 text-sm leading-relaxed">
               {BUSINESS_DETAILS.fullAddress}
             </p>
-            <div className="pt-2 text-xs text-stone-500 flex items-center gap-1.5">
-              <Clock className="w-4 h-4 text-amber-800" />
-              <span>Mon - Sat: 9:00 AM - 9:00 PM</span>
+            <div className="pt-2 text-xs space-y-1">
+              <div className="flex items-center gap-1.5 text-stone-600">
+                <Clock className="w-4 h-4 text-amber-800 shrink-0" />
+                <span><strong>Mon - Fri:</strong> 9:00 AM - 9:00 PM</span>
+              </div>
+              <div className="flex items-center gap-1.5 pl-5 text-rose-700 font-semibold">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-600"></span>
+                <span>Saturday: Closed</span>
+              </div>
             </div>
           </div>
 

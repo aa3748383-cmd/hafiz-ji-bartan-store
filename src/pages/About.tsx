@@ -40,7 +40,7 @@ export const About: React.FC = () => {
     },
     {
       q: 'What are your store business hours?',
-      a: 'Hafiz Ji Bartan Store is open Monday through Saturday from 9:00 AM to 9:00 PM on Main Road, Lalganj, Azamgarh.'
+      a: 'Hafiz Ji Bartan Store is open Monday through Friday from 9:00 AM to 9:00 PM on Main Road, Lalganj, Azamgarh. Please note that the store is closed on Saturdays.'
     }
   ];
 
@@ -106,7 +106,13 @@ export const About: React.FC = () => {
             </li>
             <li className="flex items-start gap-2.5">
               <Clock className="w-4 h-4 text-amber-800 shrink-0 mt-0.5" />
-              <span><strong>Working Hours:</strong> Mon - Sat (9:00 AM - 9:00 PM)</span>
+              <div className="space-y-0.5">
+                <span><strong>Working Hours:</strong> Mon - Fri (9:00 AM - 9:00 PM)</span>
+                <p className="text-rose-700 font-semibold text-xs flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-600"></span>
+                  Saturday: Closed
+                </p>
+              </div>
             </li>
             <li className="flex items-start gap-2.5">
               <Utensils className="w-4 h-4 text-amber-800 shrink-0 mt-0.5" />

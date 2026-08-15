@@ -86,6 +86,14 @@ export const generateLocalBusinessSchema = () => {
       '@type': 'Person',
       'name': BUSINESS_DETAILS.owner
     },
+    'openingHoursSpecification': [
+      {
+        '@type': 'OpeningHoursSpecification',
+        'dayOfWeek': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+        'opens': '09:00',
+        'closes': '21:00'
+      }
+    ],
     'url': window.location.origin
   };
 };

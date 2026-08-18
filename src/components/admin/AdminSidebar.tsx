@@ -4,6 +4,7 @@ import {
   LayoutDashboard, 
   Package, 
   Layers, 
+  ShoppingCart,
   ExternalLink, 
   LogOut, 
   ShieldCheck, 
@@ -26,6 +27,7 @@ export const AdminSidebar: React.FC = () => {
 
   const links = [
     { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+    { name: 'Customer Orders', path: '/admin/orders', icon: ShoppingCart },
     { name: 'Products', path: '/admin/products', icon: Package },
     { name: 'Categories', path: '/admin/categories', icon: Layers },
   ];
@@ -60,7 +62,7 @@ export const AdminSidebar: React.FC = () => {
                 to={link.path}
                 className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors ${
                   active
-                    ? 'bg-brand-700 text-white font-semibold shadow-sm'
+                    ? 'bg-amber-800 text-white font-semibold shadow-sm'
                     : 'text-stone-400 hover:text-white hover:bg-stone-800'
                 }`}
               >

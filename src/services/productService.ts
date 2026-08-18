@@ -4,12 +4,17 @@ import type { Product, ProductFilters } from '../types';
 export const INITIAL_DEMO_PRODUCTS: Product[] = [
   {
     id: 'p1',
-    name: '[Demo] Premium Stainless Steel Thali Set',
+    name: 'Premium Heavy Stainless Steel Thali Set (6 Pcs)',
     slug: 'demo-steel-thali-set',
-    description: 'High-grade heavy stainless steel thali with 4 bowls, glass, and spoon for family meals.',
-    price: 450,
+    description: 'High-grade 100% heavy stainless steel thali set containing 1 large thali, 4 curry bowls, 1 glass, and 1 spoon. Mirror polished, durable, and dishwasher safe.',
+    price: 599,
+    discount_price: 450,
     category_id: '1',
     image_url: 'https://images.unsplash.com/photo-1610701596007-11502861dcfa?auto=format&fit=crop&w=600&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1610701596007-11502861dcfa?auto=format&fit=crop&w=600&q=80',
+      'https://images.unsplash.com/photo-1584992236310-6edddc08acff?auto=format&fit=crop&w=600&q=80'
+    ],
     is_featured: true,
     is_available: true,
     stock_quantity: 25,
@@ -17,12 +22,16 @@ export const INITIAL_DEMO_PRODUCTS: Product[] = [
   },
   {
     id: 'p2',
-    name: '[Demo] Heavy Gauge Stainless Steel Dabba Container Set',
+    name: 'Heavy Gauge Stainless Steel Dabba Container Set (3 Pcs)',
     slug: 'demo-steel-dabba-set',
-    description: 'Set of 3 airtight stainless steel storage containers for kitchen groceries and grains.',
-    price: 550,
+    description: 'Set of 3 airtight heavy gauge stainless steel storage containers with see-through glass lids. Ideal for kitchen groceries, pulses, and dry fruits.',
+    price: 750,
+    discount_price: 550,
     category_id: '1',
     image_url: 'https://images.unsplash.com/photo-1584992236310-6edddc08acff?auto=format&fit=crop&w=600&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1584992236310-6edddc08acff?auto=format&fit=crop&w=600&q=80'
+    ],
     is_featured: false,
     is_available: true,
     stock_quantity: 18,
@@ -30,12 +39,16 @@ export const INITIAL_DEMO_PRODUCTS: Product[] = [
   },
   {
     id: 'p3',
-    name: '[Demo] 5-Litre Outer Lid Aluminium Pressure Cooker',
+    name: '5-Litre Outer Lid Heavy Aluminium Pressure Cooker',
     slug: 'demo-5l-pressure-cooker',
-    description: 'Durable 5-Litre pressure cooker with heat-resistant handle and safety valve for daily cooking.',
-    price: 1250,
+    description: 'Durable ISI certified 5-Litre pressure cooker with heavy induction bottom, heat-resistant bakelite handle, and high-safety release valve.',
+    price: 1599,
+    discount_price: 1250,
     category_id: '4',
     image_url: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80'
+    ],
     is_featured: true,
     is_available: true,
     stock_quantity: 10,
@@ -43,12 +56,16 @@ export const INITIAL_DEMO_PRODUCTS: Product[] = [
   },
   {
     id: 'p4',
-    name: '[Demo] Stainless Steel Spoon & Ladle Set (6 Pcs)',
+    name: 'Stainless Steel Spoon & Serving Ladle Set (6 Pcs)',
     slug: 'demo-spoon-ladle-set',
-    description: 'Mirror-finish stainless steel serving ladles, rice spoons, and skimmer set.',
-    price: 280,
+    description: 'Mirror-finish stainless steel serving ladles, rice spoons, dal karchhi, and frying skimmer set with ergonomic comfortable handles.',
+    price: 350,
+    discount_price: 280,
     category_id: '3',
     image_url: 'https://images.unsplash.com/photo-1590794056226-79ef3a8147e1?auto=format&fit=crop&w=600&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1590794056226-79ef3a8147e1?auto=format&fit=crop&w=600&q=80'
+    ],
     is_featured: false,
     is_available: true,
     stock_quantity: 30,
@@ -56,12 +73,16 @@ export const INITIAL_DEMO_PRODUCTS: Product[] = [
   },
   {
     id: 'p5',
-    name: '[Demo] Heavy Base Aluminium Kadai (3 Litre)',
+    name: 'Heavy Base Aluminium Deep Kadai (3 Litre)',
     slug: 'demo-heavy-aluminium-kadai',
-    description: 'Thick aluminium kadai ideal for frying, curry, and large volume household cooking.',
-    price: 480,
+    description: 'Extra thick heavy base pure aluminium deep kadai ideal for deep frying, rich curries, and large volume household festival cooking.',
+    price: 650,
+    discount_price: 480,
     category_id: '2',
     image_url: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=600&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=600&q=80'
+    ],
     is_featured: true,
     is_available: true,
     stock_quantity: 15,
@@ -105,6 +126,15 @@ export const getProducts = async (filters?: Partial<ProductFilters>): Promise<{ 
     if (filters?.featuredOnly) {
       result = result.filter(p => p.is_featured);
     }
+
+    if (filters?.sortBy === 'price-asc') {
+      result.sort((a, b) => (a.discount_price || a.price) - (b.discount_price || b.price));
+    } else if (filters?.sortBy === 'price-desc') {
+      result.sort((a, b) => (b.discount_price || b.price) - (a.discount_price || a.price));
+    } else if (filters?.sortBy === 'name-asc') {
+      result.sort((a, b) => a.name.localeCompare(b.name));
+    }
+
     return { data: result, error: null };
   }
 
@@ -153,7 +183,6 @@ export const getProducts = async (filters?: Partial<ProductFilters>): Promise<{ 
     if (error) throw error;
     
     if (!data || data.length === 0) {
-      // If db returns empty results without search, return demo data fallback
       if (!filters?.search && !filters?.categoryId) {
         return { data: INITIAL_DEMO_PRODUCTS, error: null };
       }

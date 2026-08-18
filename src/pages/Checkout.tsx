@@ -1,0 +1,454 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { 
+  ShieldCheck, 
+  MapPin, 
+  User, 
+  Phone, 
+  Mail, 
+  CheckCircle2, 
+  ArrowLeft,
+  Banknote,
+  CreditCard,
+  Lock
+} from 'lucide-react';
+import { useCart } from '../contexts/CartContext';
+import { useToast } from '../contexts/ToastContext';
+import { createOrder } from '../services/orderService';
+import type { CheckoutFormData } from '../types';
+import { formatCurrency } from '../utils/formatters';
+import { updateSEOMetadata } from '../utils/seo';
+
+export const Checkout: React.FC = () => {
+  const navigate = useNavigate();
+  const { showToast } = useToast();
+  const { cart, cartSubtotal, deliveryCharge, cartGrandTotal, clearCart } = useCart();
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState<CheckoutFormData>({
+    customerName: '',
+    customerPhone: '',
+    customerEmail: '',
+    deliveryAddress: '',
+    city: 'Lalganj',
+    state: 'Uttar Pradesh',
+    pincode: '276202',
+    orderNotes: '',
+    paymentMethod: 'cod'
+  });
+
+  const [errors, setErrors] = useState<Partial<Record<keyof CheckoutFormData, string>>>({});
+
+  useEffect(() => {
+    updateSEOMetadata({
+      title: 'Checkout - Complete Order',
+      description: 'Enter your delivery address to complete your order with Cash on Delivery at Hafiz Ji Bartan Store.',
+    });
+    window.scrollTo(0, 0);
+
+    if (cart.length === 0) {
+      navigate('/cart');
+    }
+  }, [cart, navigate]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name as keyof CheckoutFormData]) {
+      setErrors(prev => ({ ...prev, [name]: undefined }));
+    }
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: Partial<Record<keyof CheckoutFormData, string>> = {};
+
+    if (!formData.customerName.trim()) {
+      newErrors.customerName = 'Please enter your full name.';
+    }
+
+    const cleanPhone = formData.customerPhone.trim().replace(/\D/g, '');
+    if (!cleanPhone) {
+      newErrors.customerPhone = 'Please enter your 10-digit mobile number.';
+    } else if (cleanPhone.length < 10) {
+      newErrors.customerPhone = 'Mobile number must be at least 10 digits.';
+    }
+
+    if (!formData.deliveryAddress.trim()) {
+      newErrors.deliveryAddress = 'Please enter your delivery street address.';
+    }
+
+    if (!formData.city.trim()) {
+      newErrors.city = 'Please enter your city.';
+    }
+
+    const cleanPincode = formData.pincode.trim().replace(/\D/g, '');
+    if (!cleanPincode || cleanPincode.length !== 6) {
+      newErrors.pincode = 'Please enter a valid 6-digit PIN code.';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmitOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!validateForm()) {
+      showToast('Validation Error', 'Please fill in all required delivery information.', 'error');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const res = await createOrder(
+        formData,
+        cart,
+        cartSubtotal,
+        deliveryCharge,
+        cartGrandTotal
+      );
+
+      if (res.error || !res.data) {
+        showToast('Order Placement Failed', res.error || 'Failed to place order. Please try again.', 'error');
+        setIsSubmitting(false);
+        return;
+      }
+
+      showToast('Order Placed Successfully!', `Order #${res.data.order_number} confirmed.`, 'success');
+      clearCart();
+      navigate(`/order-confirmation/${res.data.order_number}`, { replace: true });
+    } catch (err: any) {
+      showToast('Error', err?.message || 'An unexpected error occurred during order submission.', 'error');
+      setIsSubmitting(false);
+    }
+  };
+
+  if (cart.length === 0) return null;
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 pb-safe-action-bar">
+      
+      {/* TOP HEADER */}
+      <div className="flex items-center justify-between border-b border-stone-200 pb-4">
+        <div>
+          <Link to="/cart" className="inline-flex items-center gap-1 text-xs font-bold text-stone-500 hover:text-amber-800 mb-1">
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Back to Shopping Cart</span>
+          </Link>
+          <h1 className="text-3xl font-bold font-serif text-stone-900">
+            Delivery & Payment Checkout
+          </h1>
+        </div>
+
+        <div className="hidden sm:flex items-center gap-2 text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
+          <Lock className="w-3.5 h-3.5 text-emerald-600" />
+          <span>Secure Checkout</span>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmitOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        {/* LEFT FORM COLUMN */}
+        <div className="lg:col-span-7 space-y-6">
+          
+          {/* SECTION 1: CUSTOMER DETAILS */}
+          <div className="bg-white rounded-2xl border border-stone-200 p-6 shadow-2xs space-y-4">
+            <h2 className="text-lg font-bold font-serif text-stone-900 flex items-center gap-2 border-b border-stone-100 pb-3">
+              <User className="w-5 h-5 text-amber-800" />
+              <span>Customer Information</span>
+            </h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* FULL NAME */}
+              <div className="sm:col-span-2 space-y-1">
+                <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider">
+                  Full Name <span className="text-red-600">*</span>
+                </label>
+                <div className="relative">
+                  <User className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    name="customerName"
+                    value={formData.customerName}
+                    onChange={handleChange}
+                    placeholder="e.g. Akhlaq Ahmad"
+                    className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm text-stone-900 bg-stone-50/60 focus:ring-2 focus:ring-amber-500/20 outline-hidden font-medium ${
+                      errors.customerName ? 'border-red-500 bg-red-50/30' : 'border-stone-300 focus:border-amber-700'
+                    }`}
+                  />
+                </div>
+                {errors.customerName && <p className="text-xs text-red-600 font-bold">{errors.customerName}</p>}
+              </div>
+
+              {/* MOBILE NUMBER */}
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider">
+                  Mobile Number (For Order Updates) <span className="text-red-600">*</span>
+                </label>
+                <div className="relative">
+                  <Phone className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="tel"
+                    name="customerPhone"
+                    value={formData.customerPhone}
+                    onChange={handleChange}
+                    placeholder="10-digit mobile number"
+                    maxLength={10}
+                    className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm text-stone-900 bg-stone-50/60 focus:ring-2 focus:ring-amber-500/20 outline-hidden font-medium ${
+                      errors.customerPhone ? 'border-red-500 bg-red-50/30' : 'border-stone-300 focus:border-amber-700'
+                    }`}
+                  />
+                </div>
+                {errors.customerPhone && <p className="text-xs text-red-600 font-bold">{errors.customerPhone}</p>}
+              </div>
+
+              {/* EMAIL */}
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider">
+                  Email Address <span className="text-stone-400 font-normal">(Optional)</span>
+                </label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="email"
+                    name="customerEmail"
+                    value={formData.customerEmail}
+                    onChange={handleChange}
+                    placeholder="your.email@example.com"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-stone-300 focus:border-amber-700 text-sm text-stone-900 bg-stone-50/60 focus:ring-2 focus:ring-amber-500/20 outline-hidden font-medium"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 2: DELIVERY ADDRESS */}
+          <div className="bg-white rounded-2xl border border-stone-200 p-6 shadow-2xs space-y-4">
+            <h2 className="text-lg font-bold font-serif text-stone-900 flex items-center gap-2 border-b border-stone-100 pb-3">
+              <MapPin className="w-5 h-5 text-amber-800" />
+              <span>Delivery Address</span>
+            </h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* STREET ADDRESS */}
+              <div className="sm:col-span-2 space-y-1">
+                <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider">
+                  House No. / Street Address / Landmark <span className="text-red-600">*</span>
+                </label>
+                <textarea
+                  name="deliveryAddress"
+                  rows={3}
+                  value={formData.deliveryAddress}
+                  onChange={handleChange}
+                  placeholder="e.g. House #12, Near Bus Stand, Main Market Road"
+                  className={`w-full p-3 rounded-xl border text-sm text-stone-900 bg-stone-50/60 focus:ring-2 focus:ring-amber-500/20 outline-hidden font-medium ${
+                    errors.deliveryAddress ? 'border-red-500 bg-red-50/30' : 'border-stone-300 focus:border-amber-700'
+                  }`}
+                />
+                {errors.deliveryAddress && <p className="text-xs text-red-600 font-bold">{errors.deliveryAddress}</p>}
+              </div>
+
+              {/* CITY */}
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider">
+                  City / Town <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="city"
+                  value={formData.city}
+                  onChange={handleChange}
+                  placeholder="e.g. Lalganj"
+                  className={`w-full p-2.5 rounded-xl border text-sm text-stone-900 bg-stone-50/60 focus:ring-2 focus:ring-amber-500/20 outline-hidden font-medium ${
+                    errors.city ? 'border-red-500 bg-red-50/30' : 'border-stone-300 focus:border-amber-700'
+                  }`}
+                />
+                {errors.city && <p className="text-xs text-red-600 font-bold">{errors.city}</p>}
+              </div>
+
+              {/* STATE */}
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider">
+                  State
+                </label>
+                <input
+                  type="text"
+                  name="state"
+                  value={formData.state}
+                  onChange={handleChange}
+                  placeholder="Uttar Pradesh"
+                  className="w-full p-2.5 rounded-xl border border-stone-300 text-sm text-stone-900 bg-stone-50/60 focus:ring-2 focus:ring-amber-500/20 outline-hidden font-medium"
+                />
+              </div>
+
+              {/* PINCODE */}
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider">
+                  PIN Code <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="pincode"
+                  value={formData.pincode}
+                  onChange={handleChange}
+                  maxLength={6}
+                  placeholder="276202"
+                  className={`w-full p-2.5 rounded-xl border text-sm text-stone-900 bg-stone-50/60 focus:ring-2 focus:ring-amber-500/20 outline-hidden font-medium ${
+                    errors.pincode ? 'border-red-500 bg-red-50/30' : 'border-stone-300 focus:border-amber-700'
+                  }`}
+                />
+                {errors.pincode && <p className="text-xs text-red-600 font-bold">{errors.pincode}</p>}
+              </div>
+
+              {/* ORDER NOTES */}
+              <div className="sm:col-span-2 space-y-1">
+                <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider">
+                  Order Notes <span className="text-stone-400 font-normal">(Optional delivery instructions)</span>
+                </label>
+                <input
+                  type="text"
+                  name="orderNotes"
+                  value={formData.orderNotes}
+                  onChange={handleChange}
+                  placeholder="e.g. Please deliver in the afternoon"
+                  className="w-full p-2.5 rounded-xl border border-stone-300 text-sm text-stone-900 bg-stone-50/60 focus:ring-2 focus:ring-amber-500/20 outline-hidden font-medium"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 3: PAYMENT METHOD */}
+          <div className="bg-white rounded-2xl border border-stone-200 p-6 shadow-2xs space-y-4">
+            <h2 className="text-lg font-bold font-serif text-stone-900 flex items-center gap-2 border-b border-stone-100 pb-3">
+              <Banknote className="w-5 h-5 text-amber-800" />
+              <span>Select Payment Method</span>
+            </h2>
+
+            <div className="space-y-3">
+              {/* CASH ON DELIVERY OPTION */}
+              <label className="flex items-start gap-3 p-4 rounded-xl border-2 border-amber-800 bg-amber-50/60 cursor-pointer">
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="cod"
+                  checked={formData.paymentMethod === 'cod'}
+                  onChange={handleChange}
+                  className="mt-1 text-amber-800 focus:ring-amber-700 w-4 h-4"
+                />
+                <div>
+                  <span className="font-bold text-stone-900 text-sm flex items-center gap-2">
+                    <span>Cash on Delivery (COD)</span>
+                    <span className="bg-emerald-700 text-white text-[10px] font-black px-2 py-0.5 rounded">RECOMMENDED</span>
+                  </span>
+                  <p className="text-xs text-stone-600 mt-0.5">
+                    Pay in cash when store order arrives at your delivery doorstep in Lalganj / Azamgarh.
+                  </p>
+                </div>
+              </label>
+
+              {/* ONLINE PAYMENT SLOT (EXTENSIBLE ARCHITECTURE) */}
+              <div className="flex items-start gap-3 p-4 rounded-xl border border-stone-200 bg-stone-50 opacity-65 cursor-not-allowed">
+                <CreditCard className="w-5 h-5 text-stone-400 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold text-stone-500 text-sm flex items-center gap-2">
+                    <span>Online Payment (UPI, Cards, NetBanking)</span>
+                    <span className="bg-stone-200 text-stone-600 text-[10px] font-bold px-2 py-0.5 rounded">COMING SOON</span>
+                  </span>
+                  <p className="text-xs text-stone-500 mt-0.5">
+                    Online gateway integration architecture prepared for Razorpay / UPI.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* RIGHT ORDER SUMMARY SIDEBAR */}
+        <div className="lg:col-span-5 space-y-4">
+          <div className="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm space-y-6 sticky top-24">
+            <h2 className="text-lg font-bold font-serif text-stone-900 pb-3 border-b border-stone-200">
+              Ordered Products ({cart.reduce((s, i) => s + i.quantity, 0)})
+            </h2>
+
+            {/* PRODUCT MINI LIST */}
+            <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
+              {cart.map(({ product, quantity }) => {
+                const price = product.discount_price && product.discount_price > 0 ? product.discount_price : product.price;
+                return (
+                  <div key={product.id} className="flex items-center gap-3 text-xs">
+                    <img
+                      src={product.image_url || 'https://images.unsplash.com/photo-1584992236310-6edddc08acff?auto=format&fit=crop&w=600&q=80'}
+                      alt=""
+                      className="w-12 h-12 rounded-lg object-cover bg-stone-100 border border-stone-200 shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-stone-900 truncate">{product.name}</p>
+                      <p className="text-stone-500">{quantity} × {formatCurrency(price)}</p>
+                    </div>
+                    <span className="font-extrabold text-stone-900">
+                      {formatCurrency(price * quantity)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* BREAKDOWN */}
+            <div className="space-y-2 text-sm pt-4 border-t border-stone-200">
+              <div className="flex justify-between text-stone-600">
+                <span>Subtotal</span>
+                <span className="font-bold text-stone-900">{formatCurrency(cartSubtotal)}</span>
+              </div>
+              <div className="flex justify-between text-stone-600">
+                <span>Delivery Charge</span>
+                {deliveryCharge === 0 ? (
+                  <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded text-xs">
+                    FREE
+                  </span>
+                ) : (
+                  <span className="font-bold text-stone-900">{formatCurrency(deliveryCharge)}</span>
+                )}
+              </div>
+              <div className="pt-3 border-t border-stone-200 flex justify-between items-baseline">
+                <span className="text-base font-bold text-stone-900">Grand Total</span>
+                <span className="text-2xl font-black text-stone-900">
+                  {formatCurrency(cartGrandTotal)}
+                </span>
+              </div>
+            </div>
+
+            {/* SUBMIT BUTTON */}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full py-4 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-extrabold text-base flex items-center justify-center gap-2 shadow-md transition-all transform active:scale-95 cursor-pointer"
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>Placing Order...</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-5 h-5" />
+                  <span>Confirm Cash on Delivery Order</span>
+                </>
+              )}
+            </button>
+
+            <div className="text-[11px] text-stone-500 text-center space-y-1">
+              <p className="flex items-center justify-center gap-1 font-medium text-stone-700">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Original products from Hafiz Ji Bartan Store, Lalganj</span>
+              </p>
+            </div>
+          </div>
+        </div>
+
+      </form>
+
+    </div>
+  );
+};

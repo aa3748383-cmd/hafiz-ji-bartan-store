@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
-  MessageCircle, 
-  Phone, 
+  ShoppingCart, 
+  Zap, 
   ArrowLeft, 
   Tag, 
   Check, 
@@ -11,27 +11,39 @@ import {
   Store,
   Share2,
   ShieldCheck,
-  Award
+  Award,
+  Plus,
+  Minus,
+  MessageCircle
 } from 'lucide-react';
 import { getProductBySlug, getProducts } from '../services/productService';
 import type { Product } from '../types';
 import { formatCurrency } from '../utils/formatters';
-import { getProductWhatsAppLink, getPhoneCallLink } from '../utils/whatsapp';
+import { getProductWhatsAppLink } from '../utils/whatsapp';
 import { DEFAULT_PRODUCT_IMAGE, BUSINESS_DETAILS } from '../lib/constants';
 import { ProductCard } from '../components/products/ProductCard';
 import { EnquiryModal } from '../components/products/EnquiryModal';
 import { useToast } from '../contexts/ToastContext';
+import { useCart } from '../contexts/CartContext';
 import { updateSEOMetadata } from '../utils/seo';
 
 export const ProductDetail: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
   const { showToast } = useToast();
+  const { addToCart } = useCart();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEnquiryOpen, setIsEnquiryOpen] = useState(false);
-  const [imgSrc, setImgSrc] = useState<string>(DEFAULT_PRODUCT_IMAGE);
+  
+  // Image gallery state
+  const [activeImage, setActiveImage] = useState<string>(DEFAULT_PRODUCT_IMAGE);
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
+  
+  // Quantity selector state
+  const [quantity, setQuantity] = useState<number>(1);
 
   useEffect(() => {
     if (!slug) return;
@@ -42,11 +54,18 @@ export const ProductDetail: React.FC = () => {
       
       if (res.data) {
         setProduct(res.data);
-        setImgSrc(res.data.image_url || DEFAULT_PRODUCT_IMAGE);
+        const mainImg = res.data.image_url || DEFAULT_PRODUCT_IMAGE;
+        setActiveImage(mainImg);
+        
+        // Build gallery array
+        const list = res.data.images && res.data.images.length > 0 ? res.data.images : [mainImg];
+        if (!list.includes(mainImg)) list.unshift(mainImg);
+        setGalleryImages(list);
+        setQuantity(1);
         
         updateSEOMetadata({
           title: res.data.name,
-          description: res.data.description || `Enquire about ${res.data.name} at Hafiz Ji Bartan Store in Lalganj Azamgarh UP.`,
+          description: res.data.description || `Buy ${res.data.name} online at Hafiz Ji Bartan Store in Lalganj Azamgarh UP.`,
         });
 
         // Fetch related products in same category
@@ -68,13 +87,34 @@ export const ProductDetail: React.FC = () => {
     if (navigator.share) {
       navigator.share({
         title: product?.name || BUSINESS_DETAILS.name,
-        text: `Check out ${product?.name} at Hafiz Ji Bartan Store, Lalganj`,
+        text: `Buy ${product?.name} at Hafiz Ji Bartan Store, Lalganj`,
         url: window.location.href,
       }).catch(() => {});
     } else {
       navigator.clipboard.writeText(window.location.href);
       showToast('Link copied!', 'Product URL copied to clipboard.', 'success');
     }
+  };
+
+  const handleQuantityChange = (delta: number) => {
+    if (!product) return;
+    const nextQty = quantity + delta;
+    if (nextQty >= 1 && nextQty <= product.stock_quantity) {
+      setQuantity(nextQty);
+    } else if (nextQty > product.stock_quantity) {
+      showToast('Stock Limit', `Only ${product.stock_quantity} units available in stock.`, 'info');
+    }
+  };
+
+  const handleAddToCart = () => {
+    if (!product) return;
+    addToCart(product, quantity);
+  };
+
+  const handleBuyNow = () => {
+    if (!product) return;
+    addToCart(product, quantity);
+    navigate('/checkout');
   };
 
   if (loading) {
@@ -103,11 +143,17 @@ export const ProductDetail: React.FC = () => {
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-800 text-white text-sm font-bold"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Back to Product Catalogue</span>
+          <span>Back to Product Shop</span>
         </Link>
       </div>
     );
   }
+
+  const hasDiscount = product.discount_price && product.discount_price > 0 && product.discount_price < product.price;
+  const activePrice = hasDiscount ? product.discount_price! : product.price;
+  const originalPrice = product.price;
+  const discountPercent = hasDiscount ? Math.round(((originalPrice - activePrice) / originalPrice) * 100) : 0;
+  const inStock = product.is_available && product.stock_quantity > 0;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-12 pb-safe-action-bar">
@@ -119,52 +165,74 @@ export const ProductDetail: React.FC = () => {
           className="inline-flex items-center gap-2 text-stone-600 hover:text-amber-800 text-sm font-bold transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Back to Catalogue</span>
+          <span>Back to Shop</span>
         </Link>
 
         <button
           onClick={handleShare}
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold transition-colors"
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold transition-colors cursor-pointer"
         >
           <Share2 className="w-3.5 h-3.5" />
-          <span>Share Product</span>
+          <span>Share</span>
         </button>
       </div>
 
       {/* MAIN PRODUCT DETAIL GRID */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-12 items-start">
         
-        {/* LEFT: IMAGE SHOWCASE */}
+        {/* LEFT: IMAGE GALLERY SHOWCASE */}
         <div className="md:col-span-6 space-y-4">
           <div className="relative aspect-4/3 w-full rounded-3xl bg-white border border-stone-200 overflow-hidden shadow-2xs">
             <img
-              src={imgSrc}
+              src={activeImage}
               alt={product.name}
-              onError={() => setImgSrc(DEFAULT_PRODUCT_IMAGE)}
+              onError={() => setActiveImage(DEFAULT_PRODUCT_IMAGE)}
               className="w-full h-full object-cover"
             />
             {product.is_featured && (
               <div className="absolute top-4 left-4 gold-badge text-stone-900 text-xs font-bold px-3 py-1 rounded-full shadow-sm flex items-center gap-1">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Featured Store Item</span>
+                <span>Featured Item</span>
+              </div>
+            )}
+            {hasDiscount && (
+              <div className="absolute top-4 right-4 bg-red-600 text-white text-xs font-black px-3 py-1 rounded-lg shadow-sm">
+                SAVE {discountPercent}%
               </div>
             )}
           </div>
 
-          {/* ITEM QUALITY PROMISE */}
-          <div className="grid grid-cols-2 gap-3 pt-1">
+          {/* THUMBNAILS GALLERY */}
+          {galleryImages.length > 1 && (
+            <div className="flex items-center gap-3 overflow-x-auto pb-2">
+              {galleryImages.map((img, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setActiveImage(img)}
+                  className={`w-20 h-20 rounded-2xl border-2 overflow-hidden shrink-0 transition-all cursor-pointer ${
+                    activeImage === img ? 'border-amber-700 ring-2 ring-amber-300' : 'border-stone-200 opacity-70 hover:opacity-100'
+                  }`}
+                >
+                  <img src={img} alt="" className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* STORE QUALITY PROMISE */}
+          <div className="grid grid-cols-2 gap-3 pt-2">
             <div className="p-3 rounded-2xl bg-amber-50/70 border border-amber-200/80 flex items-center gap-2 text-xs font-bold text-amber-900">
               <ShieldCheck className="w-4 h-4 text-amber-800 shrink-0" />
-              <span>Genuine Gauge & Weight</span>
+              <span>Genuine Heavy Gauge Stainless Steel</span>
             </div>
             <div className="p-3 rounded-2xl bg-amber-50/70 border border-amber-200/80 flex items-center gap-2 text-xs font-bold text-amber-900">
               <Award className="w-4 h-4 text-amber-800 shrink-0" />
-              <span>Original Store Warranty</span>
+              <span>Authentic Store Guarantee</span>
             </div>
           </div>
         </div>
 
-        {/* RIGHT: DETAILS & ACTIONS */}
+        {/* RIGHT: DETAILS & SHOPPING ACTIONS */}
         <div className="md:col-span-6 space-y-6">
           
           <div>
@@ -177,10 +245,10 @@ export const ProductDetail: React.FC = () => {
                 </span>
               )}
 
-              {product.is_available ? (
+              {inStock ? (
                 <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold">
                   <Check className="w-3 h-3" />
-                  <span>In Stock at Lalganj Store</span>
+                  <span>In Stock ({product.stock_quantity} available)</span>
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-stone-100 text-stone-600 text-xs font-bold">
@@ -195,65 +263,106 @@ export const ProductDetail: React.FC = () => {
               {product.name}
             </h1>
 
-            {/* PRICE */}
+            {/* PRICE & DISCOUNT */}
             <div className="mt-4 flex items-baseline gap-3">
-              <span className="text-3xl font-extrabold text-stone-900">
-                {formatCurrency(product.price)}
+              <span className="text-3xl sm:text-4xl font-extrabold text-stone-900">
+                {formatCurrency(activePrice)}
               </span>
-              <span className="text-xs text-stone-500 font-bold">Store retail estimate</span>
+              {hasDiscount && (
+                <span className="text-lg text-stone-400 line-through font-medium">
+                  {formatCurrency(originalPrice)}
+                </span>
+              )}
+              {hasDiscount && (
+                <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md">
+                  You Save {formatCurrency(originalPrice - activePrice)}
+                </span>
+              )}
             </div>
           </div>
 
           {/* DESCRIPTION */}
           {product.description && (
             <div className="bg-stone-50 rounded-2xl p-4 border border-stone-200 space-y-1">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-stone-500">Product Description</h3>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-stone-500">Product Specifications & Description</h3>
               <p className="text-stone-700 text-sm leading-relaxed">{product.description}</p>
             </div>
           )}
 
-          {/* STORE VERIFICATION BADGE */}
-          <div className="flex items-center gap-3 p-4 rounded-2xl bg-amber-50 border border-amber-200/90 text-xs text-amber-950">
-            <Store className="w-5 h-5 text-amber-800 shrink-0" />
-            <div>
-              <p className="font-bold">{BUSINESS_DETAILS.name} • Lalganj, Azamgarh</p>
-              <p className="text-amber-900 mt-0.5">Visit store or WhatsApp proprietor <strong>{BUSINESS_DETAILS.owner}</strong> for exact price quotes and size options.</p>
+          {/* QUANTITY SELECTOR & E-COMMERCE BUTTONS */}
+          {inStock && (
+            <div className="space-y-4 pt-2 border-t border-stone-200">
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-bold text-stone-800">Quantity:</span>
+                <div className="flex items-center border border-stone-300 rounded-xl bg-stone-50 overflow-hidden">
+                  <button
+                    onClick={() => handleQuantityChange(-1)}
+                    disabled={quantity <= 1}
+                    className="p-2.5 hover:bg-stone-200 disabled:opacity-30 disabled:hover:bg-stone-50 text-stone-800 transition-colors cursor-pointer"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
+                  <span className="w-12 text-center text-sm font-bold text-stone-900">
+                    {quantity}
+                  </span>
+                  <button
+                    onClick={() => handleQuantityChange(1)}
+                    disabled={quantity >= product.stock_quantity}
+                    className="p-2.5 hover:bg-stone-200 disabled:opacity-30 disabled:hover:bg-stone-50 text-stone-800 transition-colors cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* ACTION BUTTONS GRID */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <button
+                  onClick={handleAddToCart}
+                  className="py-3.5 px-6 rounded-2xl bg-amber-800 hover:bg-amber-900 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md transition-all transform active:scale-95 cursor-pointer"
+                >
+                  <ShoppingCart className="w-4 h-4" />
+                  <span>Add to Cart</span>
+                </button>
+
+                <button
+                  onClick={handleBuyNow}
+                  className="py-3.5 px-6 rounded-2xl bg-stone-900 hover:bg-stone-800 text-amber-400 font-bold text-sm flex items-center justify-center gap-2 shadow-md transition-all transform active:scale-95 cursor-pointer"
+                >
+                  <Zap className="w-4 h-4 fill-amber-400" />
+                  <span>Buy Now</span>
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* ACTION BUTTONS */}
-          <div className="space-y-3 pt-2">
+          {/* STORE VERIFICATION BADGE & WHATSAPP SECONDARY CTA */}
+          <div className="flex items-center justify-between p-4 rounded-2xl bg-amber-50 border border-amber-200/90 text-xs text-amber-950">
+            <div className="flex items-center gap-3">
+              <Store className="w-5 h-5 text-amber-800 shrink-0" />
+              <div>
+                <p className="font-bold">{BUSINESS_DETAILS.name} • Lalganj</p>
+                <p className="text-amber-900 mt-0.5">Proprietor: <strong>{BUSINESS_DETAILS.owner}</strong></p>
+              </div>
+            </div>
             
-            {/* WHATSAPP CTA */}
-            <a
-              href={getProductWhatsAppLink(product.name)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full py-3.5 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md shadow-emerald-700/20 transition-all transform hover:-translate-y-0.5"
-            >
-              <MessageCircle className="w-5 h-5" />
-              <span>Enquire on WhatsApp</span>
-            </a>
-
-            <div className="grid grid-cols-2 gap-3">
-              {/* CUSTOM ENQUIRY MODAL TRIGGER */}
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => setIsEnquiryOpen(true)}
-                className="py-3 px-4 rounded-xl bg-amber-800 hover:bg-amber-900 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all"
+                className="px-3 py-1.5 rounded-lg bg-amber-200/80 hover:bg-amber-300 text-amber-950 font-bold text-xs transition-colors cursor-pointer"
               >
-                <span>Add to Enquiry</span>
+                Inquire Bulk
               </button>
-
-              {/* CALL CTA */}
               <a
-                href={getPhoneCallLink()}
-                className="py-3 px-4 rounded-xl bg-stone-900 hover:bg-stone-800 text-amber-400 font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all"
+                href={getProductWhatsAppLink(product.name)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
+                title="Ask on WhatsApp"
               >
-                <Phone className="w-4 h-4" />
-                <span>Call Store ({BUSINESS_DETAILS.phone})</span>
+                <MessageCircle className="w-4 h-4" />
               </a>
             </div>
-
           </div>
 
         </div>
@@ -284,4 +393,3 @@ export const ProductDetail: React.FC = () => {
     </div>
   );
 };
-

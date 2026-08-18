@@ -258,7 +258,6 @@ export const Home: React.FC = () => {
               <ProductCard
                 key={product.id}
                 product={product}
-                onQuickEnquire={(p) => setSelectedEnquiryProduct(p)}
               />
             ))}
           </div>

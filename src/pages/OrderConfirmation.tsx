@@ -9,7 +9,8 @@ import {
   Phone, 
   Calendar,
   Banknote,
-  Package
+  Package,
+  ExternalLink
 } from 'lucide-react';
 import { getOrderDetailsByNumber } from '../services/orderService';
 import type { Order } from '../types';
@@ -62,24 +63,26 @@ export const OrderConfirmation: React.FC = () => {
     );
   }
 
+  const whatsappUrl = getOrderWhatsAppLink(order);
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 pb-safe-action-bar">
       
       {/* CONFIRMATION HERO CARD */}
-      <div className="bg-white rounded-3xl border border-stone-200 p-6 sm:p-10 text-center space-y-4 shadow-sm">
+      <div className="bg-white rounded-3xl border border-stone-200 p-6 sm:p-10 text-center space-y-6 shadow-sm">
         <div className="w-16 h-16 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto shadow-sm">
           <CheckCircle2 className="w-10 h-10" />
         </div>
         
-        <div className="space-y-1">
+        <div className="space-y-2">
           <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-            Order Placed Successfully
+            Order Saved & Confirmed
           </span>
-          <h1 className="text-2xl sm:text-3xl font-extrabold font-serif text-stone-900 pt-2">
+          <h1 className="text-2xl sm:text-3xl font-extrabold font-serif text-stone-900 pt-1">
             Thank You For Your Order!
           </h1>
           <p className="text-stone-600 text-sm max-w-md mx-auto">
-            Your order <strong>#{order.order_number}</strong> has been received by Hafiz Ji Bartan Store and is being processed for delivery.
+            Your order <strong>#{order.order_number}</strong> has been saved in our system and is ready for dispatch processing.
           </p>
         </div>
 
@@ -92,29 +95,50 @@ export const OrderConfirmation: React.FC = () => {
           <span className="text-stone-300">|</span>
           <div className="flex items-center gap-1.5">
             <Calendar className="w-4 h-4 text-stone-500" />
-            <span>Date: {new Date(order.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+            <span>Date: {new Date(order.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
           </div>
         </div>
 
-        {/* PRIMARY ACTIONS */}
-        <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
-          <a
-            href={getOrderWhatsAppLink(order)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md transition-all transform hover:-translate-y-0.5"
-          >
-            <MessageCircle className="w-4 h-4" />
-            <span>Send Order Notification on WhatsApp</span>
-          </a>
+        {/* PROMINENT WHATSAPP NOTIFICATION ACTION BOX */}
+        <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-500/80 rounded-3xl p-6 sm:p-8 space-y-4 shadow-sm text-left">
+          <div className="flex items-start gap-3.5">
+            <div className="p-3 bg-emerald-600 text-white rounded-2xl shrink-0 shadow-md">
+              <MessageCircle className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="text-base sm:text-lg font-bold font-serif text-emerald-950">
+                Notify Shop Owner on WhatsApp
+              </h2>
+              <p className="text-xs sm:text-sm text-emerald-800/90 mt-0.5 font-medium">
+                Click below to open WhatsApp with your complete pre-filled order summary. Simply tap <strong>Send</strong> in WhatsApp to notify the shop owner instantly.
+              </p>
+            </div>
+          </div>
 
-          <Link
-            to="/track-order"
-            className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-stone-900 hover:bg-stone-800 text-amber-400 font-bold text-sm flex items-center justify-center gap-2 shadow-md transition-all"
-          >
-            <Truck className="w-4 h-4" />
-            <span>Track Order Status</span>
-          </Link>
+          <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-extrabold text-base flex items-center justify-center gap-3 shadow-lg transition-all transform hover:-translate-y-0.5 cursor-pointer"
+            >
+              <MessageCircle className="w-5 h-5 text-white shrink-0" />
+              <span>Send Order on WhatsApp</span>
+              <ExternalLink className="w-4 h-4 text-emerald-200" />
+            </a>
+
+            <Link
+              to="/track-order"
+              className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-stone-900 hover:bg-stone-800 text-amber-400 font-bold text-sm flex items-center justify-center gap-2 shadow-md transition-all text-center"
+            >
+              <Truck className="w-4 h-4" />
+              <span>Track Order Status</span>
+            </Link>
+          </div>
+
+          <p className="text-[11px] text-emerald-700/80 italic pt-1">
+            * Note: Clicking opens WhatsApp Web or App with all items and delivery details pre-filled. You just need to press the Send button in WhatsApp.
+          </p>
         </div>
       </div>
 

@@ -105,6 +105,14 @@ export const Checkout: React.FC = () => {
 
     setIsSubmitting(true);
 
+    // Synchronously pre-open popup tab inside click handler stack to satisfy browser popup blockers
+    let waWindow: Window | null = null;
+    try {
+      waWindow = window.open('about:blank', '_blank');
+    } catch (popupErr) {
+      console.warn('Browser prevented pre-opening popup window:', popupErr);
+    }
+
     const payloadFormData: CheckoutFormData = {
       ...formData,
       paymentMethod: paymentMode
@@ -120,8 +128,11 @@ export const Checkout: React.FC = () => {
         cartGrandTotal
       );
 
-      // 2. If database creation fails, DO NOT clear cart and DO NOT navigate
+      // 2. If database creation fails, close pre-opened tab and DO NOT clear cart
       if (res.error || !res.data) {
+        if (waWindow && !waWindow.closed) {
+          waWindow.close();
+        }
         console.error('ORDER CREATION FAILED:', res.error);
         showToast('Order Placement Failed', res.error || 'Failed to place order. Please try again.', 'error');
         setIsSubmitting(false);
@@ -129,13 +140,35 @@ export const Checkout: React.FC = () => {
       }
 
       const createdOrder = res.data;
-      console.log('ORDER_CREATED', createdOrder);
+      console.log('ORDER_CREATED:', createdOrder);
 
-      // 3. Generate complete WhatsApp URL from created order
+      // 3. Generate complete WhatsApp URL using actual created order from Supabase
       const waUrl = getOrderWhatsAppLink(createdOrder);
-      console.log('WHATSAPP_URL_CREATED', waUrl);
+      console.log('WHATSAPP_URL_CREATED:', waUrl);
 
-      // 4. Save order and WhatsApp URL in sessionStorage so it survives remounting/navigation
+      // 4. Redirect pre-opened tab to admin WhatsApp URL
+      let autoOpened = false;
+      if (waWindow && !waWindow.closed) {
+        try {
+          waWindow.location.href = waUrl;
+          autoOpened = true;
+          console.log('WHATSAPP_AUTO_OPENED_SUCCESSFULLY');
+        } catch (locationErr) {
+          console.warn('Could not assign popup tab location:', locationErr);
+        }
+      }
+
+      // If pre-opened window was blocked or closed, try secondary fallback
+      if (!autoOpened) {
+        try {
+          const fallbackWin = window.open(waUrl, '_blank', 'noopener,noreferrer');
+          if (fallbackWin) autoOpened = true;
+        } catch (fbErr) {
+          console.warn('Fallback window.open blocked:', fbErr);
+        }
+      }
+
+      // 5. Save order & WhatsApp URL in sessionStorage for reliable fallback button access
       try {
         sessionStorage.setItem(`pending_whatsapp_url_${createdOrder.order_number}`, waUrl);
         sessionStorage.setItem(`pending_order_${createdOrder.order_number}`, JSON.stringify(createdOrder));
@@ -143,20 +176,23 @@ export const Checkout: React.FC = () => {
         console.warn('Could not save order details to sessionStorage:', storageErr);
       }
 
-      // 5. Clear cart independently
+      // 6. Clear cart ONLY after WhatsApp URL has been generated & open action initiated
       clearCart();
 
       const confirmationRoute = `/order-confirmation/${createdOrder.order_number}`;
-      console.log('CONFIRMATION_ROUTE', confirmationRoute);
+      console.log('CONFIRMATION_ROUTE:', confirmationRoute);
 
       showToast('Order Placed Successfully!', `Order #${createdOrder.order_number} confirmed.`, 'success');
 
-      // 6. Navigate directly to Order Confirmation page with preserved order state
+      // 7. Navigate directly to Order Confirmation page with order state
       navigate(confirmationRoute, { 
         replace: true, 
-        state: { order: createdOrder, whatsappUrl: waUrl } 
+        state: { order: createdOrder, whatsappUrl: waUrl, autoOpened } 
       });
     } catch (err: any) {
+      if (waWindow && !waWindow.closed) {
+        waWindow.close();
+      }
       console.error('SUBMIT ERROR:', err);
       showToast('Error', err?.message || 'An unexpected error occurred during order submission.', 'error');
       setIsSubmitting(false);
@@ -492,7 +528,7 @@ export const Checkout: React.FC = () => {
                   {isSubmitting ? (
                     <>
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Saving Order...</span>
+                      <span>Saving & Opening WhatsApp...</span>
                     </>
                   ) : (
                     <>

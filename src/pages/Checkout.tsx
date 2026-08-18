@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
   ShieldCheck, 
@@ -26,6 +26,7 @@ export const Checkout: React.FC = () => {
   const { cart, cartSubtotal, deliveryCharge, cartGrandTotal, clearCart } = useCart();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const hasSubmittedRef = useRef(false);
 
   const [formData, setFormData] = useState<CheckoutFormData>({
     customerName: '',
@@ -48,7 +49,7 @@ export const Checkout: React.FC = () => {
     });
     window.scrollTo(0, 0);
 
-    if (cart.length === 0 && !isSubmitting) {
+    if (cart.length === 0 && !isSubmitting && !hasSubmittedRef.current) {
       navigate('/cart');
     }
   }, [cart.length, isSubmitting, navigate]);
@@ -176,19 +177,22 @@ export const Checkout: React.FC = () => {
         console.warn('Could not save order details to sessionStorage:', storageErr);
       }
 
-      // 6. Clear cart ONLY after WhatsApp URL has been generated & open action initiated
-      clearCart();
+      // Mark submission complete ref to prevent useEffect from triggering navigate('/cart')
+      hasSubmittedRef.current = true;
 
       const confirmationRoute = `/order-confirmation/${createdOrder.order_number}`;
       console.log('CONFIRMATION_ROUTE:', confirmationRoute);
 
       showToast('Order Placed Successfully!', `Order #${createdOrder.order_number} confirmed.`, 'success');
 
-      // 7. Navigate directly to Order Confirmation page with order state
+      // 6. Navigate directly to Order Confirmation page with order state BEFORE clearing cart
       navigate(confirmationRoute, { 
         replace: true, 
         state: { order: createdOrder, whatsappUrl: waUrl, autoOpened } 
       });
+
+      // 7. Clear cart ONLY AFTER navigation has been initiated
+      clearCart();
     } catch (err: any) {
       if (waWindow && !waWindow.closed) {
         waWindow.close();
@@ -199,7 +203,7 @@ export const Checkout: React.FC = () => {
     }
   };
 
-  if (cart.length === 0 && !isSubmitting) return null;
+  if (cart.length === 0 && !isSubmitting && !hasSubmittedRef.current) return null;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 pb-safe-action-bar">

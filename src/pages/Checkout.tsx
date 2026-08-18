@@ -47,10 +47,10 @@ export const Checkout: React.FC = () => {
     });
     window.scrollTo(0, 0);
 
-    if (cart.length === 0) {
+    if (cart.length === 0 && !isSubmitting) {
       navigate('/cart');
     }
-  }, [cart, navigate]);
+  }, [cart, isSubmitting, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -104,14 +104,6 @@ export const Checkout: React.FC = () => {
 
     setIsSubmitting(true);
 
-    // Pre-open a tab synchronously during user click event to satisfy browser popup blockers
-    let waWindow: Window | null = null;
-    try {
-      waWindow = window.open('about:blank', '_blank');
-    } catch (err) {
-      console.warn('Browser prevented pre-opening popup window:', err);
-    }
-
     const payloadFormData: CheckoutFormData = {
       ...formData,
       paymentMethod: paymentMode
@@ -127,11 +119,8 @@ export const Checkout: React.FC = () => {
         cartGrandTotal
       );
 
-      // 2. If database creation fails, close popup tab and DO NOT clear cart
+      // 2. If database creation fails, DO NOT navigate to WhatsApp and DO NOT clear cart
       if (res.error || !res.data) {
-        if (waWindow && !waWindow.closed) {
-          waWindow.close();
-        }
         showToast('Order Placement Failed', res.error || 'Failed to place order. Please try again.', 'error');
         setIsSubmitting(false);
         return;
@@ -142,35 +131,21 @@ export const Checkout: React.FC = () => {
       // 3. Build WhatsApp URL ONLY after Supabase confirms order creation with valid Order ID
       const waUrl = getOrderWhatsAppLink(createdOrder);
 
-      // 4. Open/redirect to store admin WhatsApp number (919838559670)
-      if (waWindow && !waWindow.closed) {
-        waWindow.location.href = waUrl;
-      } else {
-        try {
-          window.open(waUrl, '_blank');
-        } catch (e) {
-          console.warn('Popup blocked, user can click Send Order on WhatsApp on confirmation page:', e);
-        }
-      }
-
-      // 5. Clear cart ONLY after WhatsApp URL has been generated
+      // 4. Clear cart ONLY after WhatsApp URL has been constructed
       clearCart();
 
-      showToast('Order Placed Successfully!', `Order #${createdOrder.order_number} confirmed.`, 'success');
-      navigate(`/order-confirmation/${createdOrder.order_number}`, { 
-        replace: true, 
-        state: { order: createdOrder, autoOpenedWhatsApp: true } 
-      });
+      showToast('Order Placed Successfully!', `Order #${createdOrder.order_number} confirmed. Redirecting to WhatsApp...`, 'success');
+
+      // 5. Directly navigate browser location to store admin WhatsApp URL (https://wa.me/919838559670?text=...)
+      // Standard same-tab navigation works 100% reliably on both mobile (launching native WhatsApp app) and desktop!
+      window.location.href = waUrl;
     } catch (err: any) {
-      if (waWindow && !waWindow.closed) {
-        waWindow.close();
-      }
       showToast('Error', err?.message || 'An unexpected error occurred during order submission.', 'error');
       setIsSubmitting(false);
     }
   };
 
-  if (cart.length === 0) return null;
+  if (cart.length === 0 && !isSubmitting) return null;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 pb-safe-action-bar">
@@ -499,7 +474,7 @@ export const Checkout: React.FC = () => {
                   {isSubmitting ? (
                     <>
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Saving & Creating Order...</span>
+                      <span>Saving & Redirecting to WhatsApp...</span>
                     </>
                   ) : (
                     <>
@@ -517,7 +492,7 @@ export const Checkout: React.FC = () => {
                   {isSubmitting ? (
                     <>
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Placing & Confirming Order...</span>
+                      <span>Saving & Redirecting to WhatsApp...</span>
                     </>
                   ) : (
                     <>

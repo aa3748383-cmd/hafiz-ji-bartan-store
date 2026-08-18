@@ -24,7 +24,7 @@ export const getDirectionsLink = (): string => {
  */
 export const formatOrderWhatsAppMessage = (order: Order): string => {
   const itemsText = (order.items || [])
-    .map(i => `- ${i.product_name} × ${i.quantity} (₹${i.product_price} each) = ₹${i.subtotal}`)
+    .map(i => `• ${i.product_name} × ${i.quantity} - ₹${i.product_price} (Subtotal: ₹${i.subtotal})`)
     .join('\n');
 
   const paymentText = order.payment_method === 'cod'
@@ -57,14 +57,14 @@ Order Date/Time: ${formattedDate}
 Order Status: ${statusText}
 
 Customer Details:
-Name: ${order.customer_name}
-Phone: ${order.customer_phone}
+Customer Name: ${order.customer_name}
+Customer Phone: ${order.customer_phone}
 ${emailLine}
 Ordered Products:
 ${itemsText}
 
 Subtotal: ₹${order.subtotal}
-Delivery Charge: ₹${order.delivery_charge}
+Delivery Charge: ${order.delivery_charge === 0 ? 'FREE' : `₹${order.delivery_charge}`}
 Grand Total: ₹${order.grand_total}
 
 Payment Method: ${paymentText}

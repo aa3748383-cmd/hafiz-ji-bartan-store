@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useLocation } from 'react-router-dom';
 import { 
   CheckCircle2, 
   MessageCircle, 
@@ -20,8 +20,24 @@ import { updateSEOMetadata } from '../utils/seo';
 
 export const OrderConfirmation: React.FC = () => {
   const { orderNumber } = useParams<{ orderNumber: string }>();
-  const [order, setOrder] = useState<Order | null>(null);
-  const [loading, setLoading] = useState(true);
+  const location = useLocation();
+
+  const [order, setOrder] = useState<Order | null>(() => {
+    // 1. First try React Router location state
+    if (location.state?.order) return location.state.order;
+    // 2. Try sessionStorage
+    if (orderNumber) {
+      try {
+        const saved = sessionStorage.getItem(`pending_order_${orderNumber}`);
+        if (saved) return JSON.parse(saved);
+      } catch (err) {
+        console.warn('Could not read pending order from sessionStorage:', err);
+      }
+    }
+    return null;
+  });
+
+  const [loading, setLoading] = useState<boolean>(!order);
 
   useEffect(() => {
     updateSEOMetadata({
@@ -30,13 +46,17 @@ export const OrderConfirmation: React.FC = () => {
     });
     window.scrollTo(0, 0);
 
-    if (orderNumber) {
+    if (orderNumber && !order) {
       getOrderDetailsByNumber(orderNumber).then(res => {
-        setOrder(res.data);
+        if (res.data) {
+          setOrder(res.data);
+        }
         setLoading(false);
       });
+    } else {
+      setLoading(false);
     }
-  }, [orderNumber]);
+  }, [orderNumber, order]);
 
   if (loading) {
     return (
@@ -63,7 +83,20 @@ export const OrderConfirmation: React.FC = () => {
     );
   }
 
-  const whatsappUrl = getOrderWhatsAppLink(order);
+  // Determine WhatsApp URL (Priority: Router State -> sessionStorage -> Regenerated Link)
+  let whatsappUrl = location.state?.whatsappUrl;
+  if (!whatsappUrl && orderNumber) {
+    try {
+      whatsappUrl = sessionStorage.getItem(`pending_whatsapp_url_${orderNumber}`);
+    } catch (err) {
+      console.warn('Could not read pending_whatsapp_url from sessionStorage:', err);
+    }
+  }
+  if (!whatsappUrl) {
+    whatsappUrl = getOrderWhatsAppLink(order);
+  }
+
+  console.log('WHATSAPP_BUTTON_RENDERED', whatsappUrl);
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 pb-safe-action-bar">
@@ -123,7 +156,7 @@ export const OrderConfirmation: React.FC = () => {
               className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-extrabold text-base flex items-center justify-center gap-3 shadow-lg transition-all transform hover:-translate-y-0.5 cursor-pointer"
             >
               <MessageCircle className="w-5 h-5 text-white shrink-0" />
-              <span>Send Order on WhatsApp</span>
+              <span>📱 SEND ORDER ON WHATSAPP</span>
               <ExternalLink className="w-4 h-4 text-emerald-200" />
             </a>
 

@@ -18,6 +18,7 @@ import { createOrder } from '../services/orderService';
 import type { CheckoutFormData } from '../types';
 import { formatCurrency } from '../utils/formatters';
 import { updateSEOMetadata } from '../utils/seo';
+import { getOrderWhatsAppLink } from '../utils/whatsapp';
 
 export const Checkout: React.FC = () => {
   const navigate = useNavigate();
@@ -128,15 +129,33 @@ export const Checkout: React.FC = () => {
       }
 
       const createdOrder = res.data;
-      console.log('ORDER CREATED IN SUPABASE:', createdOrder);
+      console.log('ORDER_CREATED', createdOrder);
 
-      // 3. Clear cart AFTER order is saved in Supabase
+      // 3. Generate complete WhatsApp URL from created order
+      const waUrl = getOrderWhatsAppLink(createdOrder);
+      console.log('WHATSAPP_URL_CREATED', waUrl);
+
+      // 4. Save order and WhatsApp URL in sessionStorage so it survives remounting/navigation
+      try {
+        sessionStorage.setItem(`pending_whatsapp_url_${createdOrder.order_number}`, waUrl);
+        sessionStorage.setItem(`pending_order_${createdOrder.order_number}`, JSON.stringify(createdOrder));
+      } catch (storageErr) {
+        console.warn('Could not save order details to sessionStorage:', storageErr);
+      }
+
+      // 5. Clear cart independently
       clearCart();
+
+      const confirmationRoute = `/order-confirmation/${createdOrder.order_number}`;
+      console.log('CONFIRMATION_ROUTE', confirmationRoute);
 
       showToast('Order Placed Successfully!', `Order #${createdOrder.order_number} confirmed.`, 'success');
 
-      // 4. Navigate directly to Order Confirmation page where prominent WhatsApp button will be shown
-      navigate(`/order-confirmation/${createdOrder.order_number}`, { replace: true });
+      // 6. Navigate directly to Order Confirmation page with preserved order state
+      navigate(confirmationRoute, { 
+        replace: true, 
+        state: { order: createdOrder, whatsappUrl: waUrl } 
+      });
     } catch (err: any) {
       console.error('SUBMIT ERROR:', err);
       showToast('Error', err?.message || 'An unexpected error occurred during order submission.', 'error');

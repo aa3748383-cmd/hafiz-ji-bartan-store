@@ -10,18 +10,14 @@ import {
   ArrowLeft,
   Banknote,
   Lock,
-  MessageCircle,
-  Package,
-  Truck,
-  ExternalLink
+  MessageCircle
 } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import { useToast } from '../contexts/ToastContext';
 import { createOrder } from '../services/orderService';
-import type { CheckoutFormData, Order } from '../types';
+import type { CheckoutFormData } from '../types';
 import { formatCurrency } from '../utils/formatters';
 import { updateSEOMetadata } from '../utils/seo';
-import { getOrderWhatsAppLink } from '../utils/whatsapp';
 
 export const Checkout: React.FC = () => {
   const navigate = useNavigate();
@@ -29,7 +25,6 @@ export const Checkout: React.FC = () => {
   const { cart, cartSubtotal, deliveryCharge, cartGrandTotal, clearCart } = useCart();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [createdOrderData, setCreatedOrderData] = useState<Order | null>(null);
 
   const [formData, setFormData] = useState<CheckoutFormData>({
     customerName: '',
@@ -52,11 +47,10 @@ export const Checkout: React.FC = () => {
     });
     window.scrollTo(0, 0);
 
-    // Prevent redirecting to cart if order has just been submitted successfully
-    if (cart.length === 0 && !isSubmitting && !createdOrderData) {
+    if (cart.length === 0 && !isSubmitting) {
       navigate('/cart');
     }
-  }, [cart.length, isSubmitting, createdOrderData, navigate]);
+  }, [cart.length, isSubmitting, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -125,7 +119,7 @@ export const Checkout: React.FC = () => {
         cartGrandTotal
       );
 
-      // 2. If database creation fails, DO NOT clear cart and DO NOT open WhatsApp
+      // 2. If database creation fails, DO NOT clear cart and DO NOT navigate
       if (res.error || !res.data) {
         console.error('ORDER CREATION FAILED:', res.error);
         showToast('Order Placement Failed', res.error || 'Failed to place order. Please try again.', 'error');
@@ -134,115 +128,21 @@ export const Checkout: React.FC = () => {
       }
 
       const createdOrder = res.data;
-      console.log('ORDER CREATED:', createdOrder);
+      console.log('ORDER CREATED IN SUPABASE:', createdOrder);
 
-      // 3. Build WhatsApp URL using actual newly created order data
-      const waUrl = getOrderWhatsAppLink(createdOrder);
-      console.log('WHATSAPP URL GENERATED:', waUrl);
-
-      // 4. Save created order to component state so component won't redirect to /cart when cart clears
-      setCreatedOrderData(createdOrder);
-
-      // 5. Clear cart ONLY after WhatsApp URL has been generated and state saved
+      // 3. Clear cart AFTER order is saved in Supabase
       clearCart();
 
-      showToast('Order Placed Successfully!', `Order #${createdOrder.order_number} confirmed. Redirecting to WhatsApp...`, 'success');
+      showToast('Order Placed Successfully!', `Order #${createdOrder.order_number} confirmed.`, 'success');
 
-      console.log('WHATSAPP OPEN ATTEMPTED:', waUrl);
-      console.log('NAVIGATION: Executing window.location.href = waUrl');
-
-      // 6. Directly navigate browser location to store admin WhatsApp URL (https://wa.me/919838559670?text=...)
-      // Same-tab window.location.href navigation works 100% reliably on mobile & desktop without popup blocker interference!
-      window.location.href = waUrl;
+      // 4. Navigate directly to Order Confirmation page where prominent WhatsApp button will be shown
+      navigate(`/order-confirmation/${createdOrder.order_number}`, { replace: true });
     } catch (err: any) {
       console.error('SUBMIT ERROR:', err);
       showToast('Error', err?.message || 'An unexpected error occurred during order submission.', 'error');
       setIsSubmitting(false);
     }
   };
-
-  // If order was successfully created, display Fallback Success View with prominent WhatsApp Action button
-  if (createdOrderData) {
-    const waUrl = getOrderWhatsAppLink(createdOrderData);
-    return (
-      <div className="max-w-3xl mx-auto px-4 py-12 text-center space-y-6 pb-safe-action-bar">
-        <div className="w-16 h-16 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto shadow-sm">
-          <CheckCircle2 className="w-10 h-10" />
-        </div>
-
-        <div className="space-y-2">
-          <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-            Order Saved & Confirmed
-          </span>
-          <h1 className="text-2xl sm:text-3xl font-extrabold font-serif text-stone-900">
-            Thank You For Your Order!
-          </h1>
-          <p className="text-stone-600 text-sm max-w-md mx-auto">
-            Your order <strong>#{createdOrderData.order_number}</strong> has been saved in our system.
-          </p>
-        </div>
-
-        {/* ORDER DETAILS BOX */}
-        <div className="inline-flex flex-wrap items-center justify-center gap-4 bg-stone-50 border border-stone-200 px-6 py-3 rounded-2xl text-xs font-bold text-stone-800">
-          <div className="flex items-center gap-1.5">
-            <Package className="w-4 h-4 text-amber-800" />
-            <span>Order #: <strong className="text-amber-900 font-mono text-sm">{createdOrderData.order_number}</strong></span>
-          </div>
-          <span className="text-stone-300">|</span>
-          <div className="flex items-center gap-1.5">
-            <span>Total: <strong className="text-emerald-800 text-sm">{formatCurrency(createdOrderData.grand_total)}</strong></span>
-          </div>
-        </div>
-
-        {/* PROMINENT WHATSAPP ACTION CARD */}
-        <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-500 rounded-3xl p-6 sm:p-8 space-y-4 max-w-lg mx-auto shadow-md text-left">
-          <div className="flex items-start gap-3.5">
-            <div className="p-3 bg-emerald-600 text-white rounded-2xl shrink-0 shadow-md">
-              <MessageCircle className="w-6 h-6" />
-            </div>
-            <div>
-              <h2 className="text-base sm:text-lg font-bold font-serif text-emerald-950">
-                Notify Shop Owner on WhatsApp
-              </h2>
-              <p className="text-xs sm:text-sm text-emerald-800/90 mt-0.5 font-medium">
-                Click below to open WhatsApp with your complete pre-filled order summary. Tap <strong>Send</strong> in WhatsApp to notify shop owner instantly.
-              </p>
-            </div>
-          </div>
-
-          <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
-            <a
-              href={waUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-extrabold text-base flex items-center justify-center gap-3 shadow-lg transition-all transform hover:-translate-y-0.5 cursor-pointer"
-            >
-              <MessageCircle className="w-5 h-5 text-white shrink-0" />
-              <span>Send Order on WhatsApp</span>
-              <ExternalLink className="w-4 h-4 text-emerald-200" />
-            </a>
-
-            <Link
-              to="/track-order"
-              className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-stone-900 hover:bg-stone-800 text-amber-400 font-bold text-sm flex items-center justify-center gap-2 shadow-md transition-all text-center"
-            >
-              <Truck className="w-4 h-4" />
-              <span>Track Order Status</span>
-            </Link>
-          </div>
-        </div>
-
-        <div className="pt-4">
-          <Link
-            to="/products"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold transition-colors"
-          >
-            <span>Continue Shopping More Items</span>
-          </Link>
-        </div>
-      </div>
-    );
-  }
 
   if (cart.length === 0 && !isSubmitting) return null;
 
@@ -573,7 +473,7 @@ export const Checkout: React.FC = () => {
                   {isSubmitting ? (
                     <>
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Saving & Redirecting to WhatsApp...</span>
+                      <span>Saving Order...</span>
                     </>
                   ) : (
                     <>
@@ -591,7 +491,7 @@ export const Checkout: React.FC = () => {
                   {isSubmitting ? (
                     <>
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Saving & Redirecting to WhatsApp...</span>
+                      <span>Placing & Confirming Order...</span>
                     </>
                   ) : (
                     <>

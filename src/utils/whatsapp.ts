@@ -20,11 +20,11 @@ export const getDirectionsLink = (): string => {
 };
 
 /**
- * Formats a professional WhatsApp order notification message containing complete order metadata.
+ * Formats a professional WhatsApp order notification message matching the exact store specification.
  */
 export const formatOrderWhatsAppMessage = (order: Order): string => {
   const itemsText = (order.items || [])
-    .map((i, idx) => `${idx + 1}. ${i.product_name} (Qty: ${i.quantity} × ₹${i.product_price}) = ₹${i.subtotal}`)
+    .map(i => `${i.product_name} × ${i.quantity} - ₹${i.product_price}`)
     .join('\n');
 
   const paymentText = order.payment_method === 'cod'
@@ -48,31 +48,36 @@ export const formatOrderWhatsAppMessage = (order: Order): string => {
       })
     : new Date().toLocaleString('en-IN');
 
-  return `🛒 NEW ORDER - HAFIZ JI BARTAN STORE
+  const emailLine = order.customer_email ? `Email: ${order.customer_email}\n` : '';
 
-Order No: ${order.order_number}
+  return `🛍️ NEW ORDER - HAFIZ JI BARTAN STORE
+
+Order ID: ${order.order_number}
 Date/Time: ${formattedDate}
 
-Customer: ${order.customer_name}
+Customer Details:
+Name: ${order.customer_name}
 Phone: ${order.customer_phone}
-
-Items:
+${emailLine}
+Ordered Products:
 ${itemsText}
 
 Subtotal: ₹${order.subtotal}
 Delivery Charge: ₹${order.delivery_charge}
 Grand Total: ₹${order.grand_total}
 
+Payment Method: ${paymentText}
+Order Status: ${statusText}
+
 Delivery Address:
 ${order.delivery_address}
 ${order.city}, ${order.state} - ${order.pincode}
 
-Payment Method: ${paymentText}
-Order Status: ${statusText}`;
+Please process this order.`;
 };
 
 /**
- * Returns the click-to-chat WhatsApp link for sending order details to the configured admin WhatsApp number (919838559670).
+ * Returns the click-to-chat WhatsApp link for sending order details to the store admin WhatsApp number (919838559670).
  */
 export const getOrderWhatsAppLink = (order: Order): string => {
   const message = formatOrderWhatsAppMessage(order);

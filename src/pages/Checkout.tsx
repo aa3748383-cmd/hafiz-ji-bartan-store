@@ -94,6 +94,9 @@ export const Checkout: React.FC = () => {
   const handleSubmitOrder = async (e: React.FormEvent, paymentMode: 'cod' | 'whatsapp' = 'cod') => {
     e.preventDefault();
 
+    // Prevent duplicate submission if already submitting
+    if (isSubmitting) return;
+
     if (!validateForm()) {
       showToast('Validation Error', 'Please fill in all required delivery information.', 'error');
       return;
@@ -107,7 +110,7 @@ export const Checkout: React.FC = () => {
     };
 
     try {
-      // 1. Save order to Supabase first
+      // 1. Insert order into Supabase first
       const res = await createOrder(
         payloadFormData,
         cart,
@@ -116,6 +119,7 @@ export const Checkout: React.FC = () => {
         cartGrandTotal
       );
 
+      // 2. If database creation fails, do NOT open WhatsApp and DO NOT clear cart
       if (res.error || !res.data) {
         showToast('Order Placement Failed', res.error || 'Failed to place order. Please try again.', 'error');
         setIsSubmitting(false);
@@ -124,13 +128,15 @@ export const Checkout: React.FC = () => {
 
       const createdOrder = res.data;
 
-      // 2. Clear cart only after successful order creation
+      // 3. Clear cart only after successful order creation in Supabase
       clearCart();
 
-      // 3. If WhatsApp payment mode selected, open pre-filled WhatsApp link
-      if (paymentMode === 'whatsapp') {
+      // 4. Open WhatsApp for store admin (919838559670) with pre-filled message
+      try {
         const waUrl = getOrderWhatsAppLink(createdOrder);
         window.open(waUrl, '_blank');
+      } catch (waErr) {
+        console.warn('Could not auto-open WhatsApp popup:', waErr);
       }
 
       showToast('Order Placed Successfully!', `Order #${createdOrder.order_number} confirmed.`, 'success');
@@ -190,6 +196,7 @@ export const Checkout: React.FC = () => {
                     value={formData.customerName}
                     onChange={handleChange}
                     placeholder="e.g. Akhlaq Ahmad"
+                    disabled={isSubmitting}
                     className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm text-stone-900 bg-stone-50/60 focus:ring-2 focus:ring-amber-500/20 outline-hidden font-medium ${
                       errors.customerName ? 'border-red-500 bg-red-50/30' : 'border-stone-300 focus:border-amber-700'
                     }`}
@@ -212,6 +219,7 @@ export const Checkout: React.FC = () => {
                     onChange={handleChange}
                     placeholder="10-digit mobile number"
                     maxLength={10}
+                    disabled={isSubmitting}
                     className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm text-stone-900 bg-stone-50/60 focus:ring-2 focus:ring-amber-500/20 outline-hidden font-medium ${
                       errors.customerPhone ? 'border-red-500 bg-red-50/30' : 'border-stone-300 focus:border-amber-700'
                     }`}
@@ -233,6 +241,7 @@ export const Checkout: React.FC = () => {
                     value={formData.customerEmail}
                     onChange={handleChange}
                     placeholder="your.email@example.com"
+                    disabled={isSubmitting}
                     className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-stone-300 focus:border-amber-700 text-sm text-stone-900 bg-stone-50/60 focus:ring-2 focus:ring-amber-500/20 outline-hidden font-medium"
                   />
                 </div>
@@ -259,6 +268,7 @@ export const Checkout: React.FC = () => {
                   value={formData.deliveryAddress}
                   onChange={handleChange}
                   placeholder="e.g. House #12, Near Bus Stand, Main Market Road"
+                  disabled={isSubmitting}
                   className={`w-full p-3 rounded-xl border text-sm text-stone-900 bg-stone-50/60 focus:ring-2 focus:ring-amber-500/20 outline-hidden font-medium ${
                     errors.deliveryAddress ? 'border-red-500 bg-red-50/30' : 'border-stone-300 focus:border-amber-700'
                   }`}
@@ -277,6 +287,7 @@ export const Checkout: React.FC = () => {
                   value={formData.city}
                   onChange={handleChange}
                   placeholder="e.g. Lalganj"
+                  disabled={isSubmitting}
                   className={`w-full p-2.5 rounded-xl border text-sm text-stone-900 bg-stone-50/60 focus:ring-2 focus:ring-amber-500/20 outline-hidden font-medium ${
                     errors.city ? 'border-red-500 bg-red-50/30' : 'border-stone-300 focus:border-amber-700'
                   }`}
@@ -295,6 +306,7 @@ export const Checkout: React.FC = () => {
                   value={formData.state}
                   onChange={handleChange}
                   placeholder="Uttar Pradesh"
+                  disabled={isSubmitting}
                   className="w-full p-2.5 rounded-xl border border-stone-300 text-sm text-stone-900 bg-stone-50/60 focus:ring-2 focus:ring-amber-500/20 outline-hidden font-medium"
                 />
               </div>
@@ -311,6 +323,7 @@ export const Checkout: React.FC = () => {
                   onChange={handleChange}
                   maxLength={6}
                   placeholder="276202"
+                  disabled={isSubmitting}
                   className={`w-full p-2.5 rounded-xl border text-sm text-stone-900 bg-stone-50/60 focus:ring-2 focus:ring-amber-500/20 outline-hidden font-medium ${
                     errors.pincode ? 'border-red-500 bg-red-50/30' : 'border-stone-300 focus:border-amber-700'
                   }`}
@@ -329,6 +342,7 @@ export const Checkout: React.FC = () => {
                   value={formData.orderNotes}
                   onChange={handleChange}
                   placeholder="e.g. Please deliver in afternoon"
+                  disabled={isSubmitting}
                   className="w-full p-2.5 rounded-xl border border-stone-300 text-sm text-stone-900 bg-stone-50/60 focus:ring-2 focus:ring-amber-500/20 outline-hidden font-medium"
                 />
               </div>
@@ -353,6 +367,7 @@ export const Checkout: React.FC = () => {
                   value="cod"
                   checked={formData.paymentMethod === 'cod'}
                   onChange={handleChange}
+                  disabled={isSubmitting}
                   className="mt-1 text-amber-800 focus:ring-amber-700 w-4 h-4"
                 />
                 <div>
@@ -376,6 +391,7 @@ export const Checkout: React.FC = () => {
                   value="whatsapp"
                   checked={formData.paymentMethod === 'whatsapp'}
                   onChange={handleChange}
+                  disabled={isSubmitting}
                   className="mt-1 text-emerald-600 focus:ring-emerald-600 w-4 h-4"
                 />
                 <div>
@@ -460,11 +476,11 @@ export const Checkout: React.FC = () => {
                   {isSubmitting ? (
                     <>
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Saving Order...</span>
+                      <span>Saving & Creating Order...</span>
                     </>
                   ) : (
                     <>
-                      <MessageCircle className="w-5 h-5 fill-white" />
+                      <MessageCircle className="w-5 h-5 fill-white text-emerald-600" />
                       <span>Order via WhatsApp Direct</span>
                     </>
                   )}
@@ -478,12 +494,12 @@ export const Checkout: React.FC = () => {
                   {isSubmitting ? (
                     <>
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Placing Order...</span>
+                      <span>Placing & Confirming Order...</span>
                     </>
                   ) : (
                     <>
                       <CheckCircle2 className="w-5 h-5" />
-                      <span>Place Order (Cash on Delivery)</span>
+                      <span>Confirm Cash on Delivery Order</span>
                     </>
                   )}
                 </button>

@@ -106,21 +106,13 @@ export const Checkout: React.FC = () => {
 
     setIsSubmitting(true);
 
-    // Synchronously pre-open popup tab inside click handler stack to satisfy browser popup blockers
-    let waWindow: Window | null = null;
-    try {
-      waWindow = window.open('about:blank', '_blank');
-    } catch (popupErr) {
-      console.warn('Browser prevented pre-opening popup window:', popupErr);
-    }
-
     const payloadFormData: CheckoutFormData = {
       ...formData,
       paymentMethod: paymentMode
     };
 
     try {
-      // 1. Insert order into Supabase FIRST
+      // 1. Save order to Supabase database FIRST
       const res = await createOrder(
         payloadFormData,
         cart,
@@ -129,11 +121,8 @@ export const Checkout: React.FC = () => {
         cartGrandTotal
       );
 
-      // 2. If database creation fails, close pre-opened tab and DO NOT clear cart
+      // 2. If database creation fails, DO NOT clear cart and DO NOT navigate
       if (res.error || !res.data) {
-        if (waWindow && !waWindow.closed) {
-          waWindow.close();
-        }
         console.error('ORDER CREATION FAILED:', res.error);
         showToast('Order Placement Failed', res.error || 'Failed to place order. Please try again.', 'error');
         setIsSubmitting(false);
@@ -143,33 +132,11 @@ export const Checkout: React.FC = () => {
       const createdOrder = res.data;
       console.log('ORDER_CREATED:', createdOrder);
 
-      // 3. Generate complete WhatsApp URL using actual created order from Supabase
+      // 3. Generate complete WhatsApp URL from created order
       const waUrl = getOrderWhatsAppLink(createdOrder);
       console.log('WHATSAPP_URL_CREATED:', waUrl);
 
-      // 4. Redirect pre-opened tab to admin WhatsApp URL
-      let autoOpened = false;
-      if (waWindow && !waWindow.closed) {
-        try {
-          waWindow.location.href = waUrl;
-          autoOpened = true;
-          console.log('WHATSAPP_AUTO_OPENED_SUCCESSFULLY');
-        } catch (locationErr) {
-          console.warn('Could not assign popup tab location:', locationErr);
-        }
-      }
-
-      // If pre-opened window was blocked or closed, try secondary fallback
-      if (!autoOpened) {
-        try {
-          const fallbackWin = window.open(waUrl, '_blank', 'noopener,noreferrer');
-          if (fallbackWin) autoOpened = true;
-        } catch (fbErr) {
-          console.warn('Fallback window.open blocked:', fbErr);
-        }
-      }
-
-      // 5. Save order & WhatsApp URL in sessionStorage for reliable fallback button access
+      // 4. Save order & WhatsApp URL in sessionStorage for reliable confirmation page access
       try {
         sessionStorage.setItem(`pending_whatsapp_url_${createdOrder.order_number}`, waUrl);
         sessionStorage.setItem(`pending_order_${createdOrder.order_number}`, JSON.stringify(createdOrder));
@@ -177,7 +144,7 @@ export const Checkout: React.FC = () => {
         console.warn('Could not save order details to sessionStorage:', storageErr);
       }
 
-      // Mark submission complete ref to prevent useEffect from triggering navigate('/cart')
+      // Mark submission complete ref to prevent empty-cart redirect
       hasSubmittedRef.current = true;
 
       const confirmationRoute = `/order-confirmation/${createdOrder.order_number}`;
@@ -185,18 +152,15 @@ export const Checkout: React.FC = () => {
 
       showToast('Order Placed Successfully!', `Order #${createdOrder.order_number} confirmed.`, 'success');
 
-      // 6. Navigate directly to Order Confirmation page with order state BEFORE clearing cart
+      // 5. Navigate directly to Order Confirmation page with order state
       navigate(confirmationRoute, { 
         replace: true, 
-        state: { order: createdOrder, whatsappUrl: waUrl, autoOpened } 
+        state: { order: createdOrder, whatsappUrl: waUrl } 
       });
 
-      // 7. Clear cart ONLY AFTER navigation has been initiated
+      // 6. Clear cart ONLY AFTER navigation has been initiated
       clearCart();
     } catch (err: any) {
-      if (waWindow && !waWindow.closed) {
-        waWindow.close();
-      }
       console.error('SUBMIT ERROR:', err);
       showToast('Error', err?.message || 'An unexpected error occurred during order submission.', 'error');
       setIsSubmitting(false);
@@ -532,7 +496,7 @@ export const Checkout: React.FC = () => {
                   {isSubmitting ? (
                     <>
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Saving & Opening WhatsApp...</span>
+                      <span>Saving Order...</span>
                     </>
                   ) : (
                     <>

@@ -60,9 +60,19 @@ Order Status: ${statusText}`;
 };
 
 /**
- * Returns the click-to-chat WhatsApp link for a created order.
+ * Returns the click-to-chat WhatsApp link for sending order details to the configured admin WhatsApp number.
  */
 export const getOrderWhatsAppLink = (order: Order): string => {
   const message = formatOrderWhatsAppMessage(order);
   return `https://wa.me/${BUSINESS_DETAILS.whatsappNumber}?text=${encodeURIComponent(message)}`;
+};
+
+/**
+ * Returns the click-to-chat WhatsApp link for directly contacting the customer regarding their order.
+ */
+export const getCustomerWhatsAppLink = (order: Order): string => {
+  const message = `Hello ${order.customer_name}, regarding your Hafiz Ji Bartan Store Order #${order.order_number} (Status: ${order.order_status}).`;
+  const cleanPhone = order.customer_phone.replace(/\D/g, '');
+  const phoneWithCountry = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+  return `https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message)}`;
 };

@@ -13,7 +13,7 @@ import type { Order, OrderStatus, OrderStats } from '../../types';
 import { formatCurrency } from '../../utils/formatters';
 import { useToast } from '../../contexts/ToastContext';
 import { AdminSidebar } from '../../components/admin/AdminSidebar';
-import { getOrderWhatsAppLink } from '../../utils/whatsapp';
+import { getOrderWhatsAppLink, getCustomerWhatsAppLink } from '../../utils/whatsapp';
 
 export const AdminOrders: React.FC = () => {
   const { showToast } = useToast();
@@ -197,7 +197,7 @@ export const AdminOrders: React.FC = () => {
                       <th className="py-3.5 px-4">Payment</th>
                       <th className="py-3.5 px-4">Status</th>
                       <th className="py-3.5 px-4">Date</th>
-                      <th className="py-3.5 px-4 text-right">Actions</th>
+                      <th className="py-3.5 px-4 text-right min-w-[190px]">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-stone-800 text-stone-300">
@@ -224,24 +224,28 @@ export const AdminOrders: React.FC = () => {
                         <td className="py-3 px-4 text-stone-400">
                           {new Date(ord.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                         </td>
-                        <td className="py-3 px-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              onClick={() => setSelectedOrder(ord)}
-                              className="px-3 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-bold transition-colors inline-flex items-center gap-1 cursor-pointer"
-                            >
-                              <Eye className="w-3.5 h-3.5 text-amber-400" />
-                              <span>Details</span>
-                            </button>
+                        <td className="py-3 px-4 text-right whitespace-nowrap min-w-[190px]">
+                          <div className="flex items-center justify-end gap-2">
+                            {/* WHATSAPP ACTION BUTTON - PROMINENT & VISIBLE */}
                             <a
                               href={getOrderWhatsAppLink(ord)}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="p-1.5 rounded-lg bg-emerald-950 hover:bg-emerald-900 border border-emerald-800 text-emerald-400 transition-colors"
+                              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-extrabold text-xs inline-flex items-center gap-1.5 shadow-sm border border-emerald-500/80 transition-all cursor-pointer shrink-0"
                               title="Send Order Notification via WhatsApp"
                             >
-                              <MessageCircle className="w-3.5 h-3.5" />
+                              <MessageCircle className="w-4 h-4 text-white shrink-0" />
+                              <span>WhatsApp</span>
                             </a>
+
+                            {/* DETAILS MODAL BUTTON */}
+                            <button
+                              onClick={() => setSelectedOrder(ord)}
+                              className="px-3 py-1.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-bold transition-colors inline-flex items-center gap-1 cursor-pointer shrink-0"
+                            >
+                              <Eye className="w-3.5 h-3.5 text-amber-400" />
+                              <span>Details</span>
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -274,8 +278,8 @@ export const AdminOrders: React.FC = () => {
               </button>
             </div>
 
-            {/* STATUS UPDATE DROPDOWN & WHATSAPP ACTION */}
-            <div className="p-4 rounded-2xl bg-stone-950 border border-stone-800 space-y-3">
+            {/* STATUS UPDATE DROPDOWN & WHATSAPP ACTIONS */}
+            <div className="p-4 rounded-2xl bg-stone-950 border border-stone-800 space-y-4">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div>
                   <span className="text-xs font-bold text-stone-400 uppercase tracking-wider block">Update Order Status</span>
@@ -297,15 +301,26 @@ export const AdminOrders: React.FC = () => {
                 </select>
               </div>
 
-              <div className="pt-2 border-t border-stone-800 flex justify-end">
+              {/* WHATSAPP ACTION BUTTONS */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-stone-800">
                 <a
                   href={getOrderWhatsAppLink(selectedOrder)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full sm:w-auto px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs inline-flex items-center justify-center gap-2 transition-all shadow-sm"
+                  className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs inline-flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
                 >
-                  <MessageCircle className="w-4 h-4 fill-white" />
-                  <span>Send Order Notification to Admin / WhatsApp</span>
+                  <MessageCircle className="w-4 h-4 text-white shrink-0" />
+                  <span>Send Order to Store WhatsApp</span>
+                </a>
+
+                <a
+                  href={getCustomerWhatsAppLink(selectedOrder)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-2.5 px-4 rounded-xl bg-stone-800 hover:bg-stone-700 text-emerald-400 border border-emerald-800/80 font-bold text-xs inline-flex items-center justify-center gap-2 transition-all cursor-pointer"
+                >
+                  <MessageCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Chat with Customer ({selectedOrder.customer_phone})</span>
                 </a>
               </div>
             </div>

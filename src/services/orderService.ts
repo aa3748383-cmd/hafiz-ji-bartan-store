@@ -416,7 +416,7 @@ export const getOrderStats = async (): Promise<{ data: OrderStats; error: string
   const stats: OrderStats = {
     totalOrders: orders.length,
     pendingOrders: orders.filter(o => o.order_status === 'pending').length,
-    confirmedOrders: orders.filter(o => o.order_status === 'confirmed' || o.order_status === 'processing').length,
+    confirmedOrders: orders.filter(o => o.order_status === 'confirmed' || o.order_status === 'preparing' || o.order_status === 'out_for_delivery').length,
     deliveredOrders: orders.filter(o => o.order_status === 'delivered').length,
     totalRevenue: orders.reduce((sum, o) => o.order_status !== 'cancelled' ? sum + o.grand_total : sum, 0)
   };

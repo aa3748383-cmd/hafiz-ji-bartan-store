@@ -71,8 +71,8 @@ export const TrackOrder: React.FC = () => {
     switch (status) {
       case 'pending': return 1;
       case 'confirmed': return 2;
-      case 'processing': return 3;
-      case 'shipped': return 4;
+      case 'preparing': return 3;
+      case 'out_for_delivery': return 4;
       case 'delivered': return 5;
       case 'cancelled': return 0;
       default: return 1;
@@ -82,10 +82,22 @@ export const TrackOrder: React.FC = () => {
   const steps = [
     { label: 'Order Placed', statusKey: 'pending' },
     { label: 'Confirmed', statusKey: 'confirmed' },
-    { label: 'Processing', statusKey: 'processing' },
-    { label: 'Shipped', statusKey: 'shipped' },
+    { label: 'Preparing', statusKey: 'preparing' },
+    { label: 'Out for Delivery', statusKey: 'out_for_delivery' },
     { label: 'Delivered', statusKey: 'delivered' },
   ];
+
+  const getStatusLabel = (status: OrderStatus): string => {
+    switch (status) {
+      case 'pending': return 'Pending';
+      case 'confirmed': return 'Confirmed';
+      case 'preparing': return 'Preparing';
+      case 'out_for_delivery': return 'Out for Delivery';
+      case 'delivered': return 'Delivered';
+      case 'cancelled': return 'Cancelled';
+      default: return status;
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 pb-safe-action-bar">
@@ -179,7 +191,7 @@ export const TrackOrder: React.FC = () => {
                   order.order_status === 'cancelled' ? 'bg-red-100 text-red-800' :
                   'bg-amber-100 text-amber-900'
                 }`}>
-                  {order.order_status}
+                  {getStatusLabel(order.order_status)}
                 </span>
               </div>
             </div>
@@ -189,7 +201,7 @@ export const TrackOrder: React.FC = () => {
                 <Calendar className="w-3.5 h-3.5 text-stone-400" />
                 <span>Placed on: {new Date(order.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
               </p>
-              <p>Total: <strong className="text-stone-900 font-extrabold">{formatCurrency(order.grand_total)}</strong> (COD)</p>
+              <p>Total: <strong className="text-stone-900 font-extrabold">{formatCurrency(order.grand_total)}</strong> ({order.payment_method.toUpperCase()})</p>
             </div>
           </div>
 
@@ -204,7 +216,7 @@ export const TrackOrder: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-stone-500">Order Delivery Timeline</h3>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-stone-500">Order Delivery Progress</h3>
               <div className="grid grid-cols-5 gap-2 relative">
                 {steps.map((step, idx) => {
                   const currentIdx = getStepIndex(order.order_status);
@@ -243,6 +255,7 @@ export const TrackOrder: React.FC = () => {
                 <span>{order.customer_phone}</span>
               </p>
               <p>{order.delivery_address}, {order.city}, {order.state} - {order.pincode}</p>
+              {order.order_notes && <p className="italic text-stone-500 mt-1">Note: "{order.order_notes}"</p>}
             </div>
 
             {/* ORDER ITEMS LIST */}

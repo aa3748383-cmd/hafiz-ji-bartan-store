@@ -22,7 +22,6 @@ import { formatCurrency } from '../utils/formatters';
 import { getProductWhatsAppLink } from '../utils/whatsapp';
 import { DEFAULT_PRODUCT_IMAGE, BUSINESS_DETAILS } from '../lib/constants';
 import { ProductCard } from '../components/products/ProductCard';
-import { EnquiryModal } from '../components/products/EnquiryModal';
 import { useToast } from '../contexts/ToastContext';
 import { useCart } from '../contexts/CartContext';
 import { updateSEOMetadata } from '../utils/seo';
@@ -36,7 +35,6 @@ export const ProductDetail: React.FC = () => {
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isEnquiryOpen, setIsEnquiryOpen] = useState(false);
   
   // Image gallery state
   const [activeImage, setActiveImage] = useState<string>(DEFAULT_PRODUCT_IMAGE);
@@ -346,23 +344,15 @@ export const ProductDetail: React.FC = () => {
               </div>
             </div>
             
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setIsEnquiryOpen(true)}
-                className="px-3 py-1.5 rounded-lg bg-amber-200/80 hover:bg-amber-300 text-amber-950 font-bold text-xs transition-colors cursor-pointer"
-              >
-                Inquire Bulk
-              </button>
-              <a
-                href={getProductWhatsAppLink(product.name)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
-                title="Ask on WhatsApp"
-              >
-                <MessageCircle className="w-4 h-4" />
-              </a>
-            </div>
+            <a
+              href={getProductWhatsAppLink(product.name)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors shadow-2xs"
+            >
+              <MessageCircle className="w-4 h-4" />
+              <span>WhatsApp Inquiry</span>
+            </a>
           </div>
 
         </div>
@@ -382,13 +372,6 @@ export const ProductDetail: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* ENQUIRY MODAL */}
-      <EnquiryModal
-        product={product}
-        isOpen={isEnquiryOpen}
-        onClose={() => setIsEnquiryOpen(false)}
-      />
 
     </div>
   );

@@ -4,7 +4,6 @@ import { ProductFilterBar } from '../components/products/ProductFilterBar';
 import { ProductCard } from '../components/products/ProductCard';
 import { ProductGridSkeleton } from '../components/common/SkeletonLoader';
 import { EmptyState } from '../components/common/EmptyState';
-import { EnquiryModal } from '../components/products/EnquiryModal';
 import { getProducts } from '../services/productService';
 import { getCategories } from '../services/categoryService';
 import type { Category, Product, ProductFilters } from '../types';
@@ -17,7 +16,6 @@ export const Products: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedEnquiryProduct, setSelectedEnquiryProduct] = useState<Product | null>(null);
 
   // Filter state
   const [filters, setFilters] = useState<ProductFilters>({
@@ -124,7 +122,7 @@ export const Products: React.FC = () => {
           description={
             filters.search || filters.categoryId
               ? "No store items match your current search criteria. Try clearing search filters."
-              : "Our store inventory is currently being updated. Please check back shortly or enquire via WhatsApp."
+              : "Our store inventory is currently being updated. Please check back shortly."
           }
           onReset={handleResetFilters}
         />
@@ -139,14 +137,6 @@ export const Products: React.FC = () => {
         </div>
       )}
 
-      {/* ENQUIRY MODAL */}
-      <EnquiryModal
-        product={selectedEnquiryProduct}
-        isOpen={Boolean(selectedEnquiryProduct)}
-        onClose={() => setSelectedEnquiryProduct(null)}
-      />
-
     </div>
   );
 };
-

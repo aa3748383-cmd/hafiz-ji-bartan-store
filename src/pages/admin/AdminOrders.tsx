@@ -49,7 +49,7 @@ export const AdminOrders: React.FC = () => {
     const res = await updateOrderStatus(orderId, newStatus);
     
     if (res.success) {
-      showToast('Order Status Updated', `Order status updated to "${newStatus.toUpperCase()}".`, 'success');
+      showToast('Order Status Updated', `Order status updated to "${getStatusText(newStatus)}".`, 'success');
       if (selectedOrder && selectedOrder.id === orderId) {
         setSelectedOrder(prev => prev ? { ...prev, order_status: newStatus } : null);
       }
@@ -60,16 +60,28 @@ export const AdminOrders: React.FC = () => {
     setIsUpdating(false);
   };
 
+  const getStatusText = (status: OrderStatus) => {
+    switch (status) {
+      case 'pending': return 'Pending';
+      case 'confirmed': return 'Confirmed';
+      case 'preparing': return 'Preparing';
+      case 'out_for_delivery': return 'Out for Delivery';
+      case 'delivered': return 'Delivered';
+      case 'cancelled': return 'Cancelled';
+      default: return status;
+    }
+  };
+
   const getStatusBadge = (status: OrderStatus) => {
     switch (status) {
       case 'pending':
         return <span className="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase">Pending</span>;
       case 'confirmed':
         return <span className="bg-blue-500/20 text-blue-300 border border-blue-500/40 text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase">Confirmed</span>;
-      case 'processing':
-        return <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase">Processing</span>;
-      case 'shipped':
-        return <span className="bg-purple-500/20 text-purple-300 border border-purple-500/40 text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase">Shipped</span>;
+      case 'preparing':
+        return <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase">Preparing</span>;
+      case 'out_for_delivery':
+        return <span className="bg-purple-500/20 text-purple-300 border border-purple-500/40 text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase">Out for Delivery</span>;
       case 'delivered':
         return <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase">Delivered</span>;
       case 'cancelled':
@@ -115,7 +127,7 @@ export const AdminOrders: React.FC = () => {
               <span className="text-xl sm:text-2xl font-black text-white font-serif">{stats.totalOrders}</span>
             </div>
             <div className="bg-stone-900 border border-stone-800 p-4 rounded-2xl space-y-1">
-              <span className="text-stone-400 text-xs font-medium block">Pending Confirmation</span>
+              <span className="text-stone-400 text-xs font-medium block">Pending Orders</span>
               <span className="text-xl sm:text-2xl font-black text-amber-400 font-serif">{stats.pendingOrders}</span>
             </div>
             <div className="bg-stone-900 border border-stone-800 p-4 rounded-2xl space-y-1">
@@ -143,7 +155,7 @@ export const AdminOrders: React.FC = () => {
 
             {/* STATUS TABS */}
             <div className="flex items-center gap-1 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
-              {(['all', 'pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'] as const).map((tab) => (
+              {(['all', 'pending', 'confirmed', 'preparing', 'out_for_delivery', 'delivered', 'cancelled'] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -153,7 +165,7 @@ export const AdminOrders: React.FC = () => {
                       : 'bg-stone-900 text-stone-400 hover:text-white hover:bg-stone-800'
                   }`}
                 >
-                  {tab}
+                  {tab === 'all' ? 'All Orders' : getStatusText(tab)}
                 </button>
               ))}
             </div>
@@ -252,8 +264,8 @@ export const AdminOrders: React.FC = () => {
             {/* STATUS UPDATE DROPDOWN */}
             <div className="p-4 rounded-2xl bg-stone-950 border border-stone-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div>
-                <span className="text-xs font-bold text-stone-400 uppercase tracking-wider block">Update Status</span>
-                <span className="text-xs text-stone-500">Change customer order stage</span>
+                <span className="text-xs font-bold text-stone-400 uppercase tracking-wider block">Update Order Status</span>
+                <span className="text-xs text-stone-500">Change status stage for customer order</span>
               </div>
 
               <select
@@ -264,8 +276,8 @@ export const AdminOrders: React.FC = () => {
               >
                 <option value="pending">Pending</option>
                 <option value="confirmed">Confirmed</option>
-                <option value="processing">Processing</option>
-                <option value="shipped">Shipped</option>
+                <option value="preparing">Preparing</option>
+                <option value="out_for_delivery">Out for Delivery</option>
                 <option value="delivered">Delivered</option>
                 <option value="cancelled">Cancelled</option>
               </select>
@@ -274,7 +286,7 @@ export const AdminOrders: React.FC = () => {
             {/* CUSTOMER & ADDRESS DETAILS */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
               <div className="bg-stone-950 p-4 rounded-2xl space-y-1.5 border border-stone-800">
-                <span className="font-bold text-amber-400 block uppercase tracking-wider text-[11px]">Customer</span>
+                <span className="font-bold text-amber-400 block uppercase tracking-wider text-[11px]">Customer Details</span>
                 <p className="font-bold text-white text-sm">{selectedOrder.customer_name}</p>
                 <p className="text-stone-300 font-mono flex items-center gap-1">
                   <Phone className="w-3 h-3 text-stone-500" />
@@ -287,6 +299,7 @@ export const AdminOrders: React.FC = () => {
                 <span className="font-bold text-amber-400 block uppercase tracking-wider text-[11px]">Delivery Address</span>
                 <p className="text-stone-200">{selectedOrder.delivery_address}</p>
                 <p className="text-stone-400">{selectedOrder.city}, {selectedOrder.state} - {selectedOrder.pincode}</p>
+                {selectedOrder.order_notes && <p className="text-amber-300/80 italic mt-1">Note: "{selectedOrder.order_notes}"</p>}
               </div>
             </div>
 
@@ -310,7 +323,7 @@ export const AdminOrders: React.FC = () => {
 
             {/* SUMMARY TOTALS */}
             <div className="bg-stone-950 p-4 rounded-2xl border border-stone-800 flex justify-between items-center text-xs">
-              <span className="text-stone-400 font-bold">Grand Total (Cash on Delivery):</span>
+              <span className="text-stone-400 font-bold">Grand Total ({selectedOrder.payment_method.toUpperCase()}):</span>
               <span className="text-xl font-extrabold text-white font-serif">{formatCurrency(selectedOrder.grand_total)}</span>
             </div>
 

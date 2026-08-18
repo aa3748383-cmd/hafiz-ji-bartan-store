@@ -22,14 +22,12 @@ import { getFeaturedProducts } from '../services/productService';
 import type { Category, Product } from '../types';
 import { ProductCard } from '../components/products/ProductCard';
 import { ProductGridSkeleton } from '../components/common/SkeletonLoader';
-import { EnquiryModal } from '../components/products/EnquiryModal';
 import { updateSEOMetadata } from '../utils/seo';
 
 export const Home: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedEnquiryProduct, setSelectedEnquiryProduct] = useState<Product | null>(null);
 
   useEffect(() => {
     updateSEOMetadata({
@@ -94,7 +92,7 @@ export const Home: React.FC = () => {
                   className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md shadow-emerald-700/20 hover:shadow-lg transition-all transform hover:-translate-y-0.5 active:translate-y-0"
                 >
                   <MessageCircle className="w-4.5 h-4.5" />
-                  <span>WhatsApp Enquiry</span>
+                  <span>WhatsApp Contact</span>
                 </a>
 
                 {/* ADDITIONAL CTA */}
@@ -388,14 +386,6 @@ export const Home: React.FC = () => {
         </div>
       </section>
 
-      {/* ENQUIRY MODAL */}
-      <EnquiryModal
-        product={selectedEnquiryProduct}
-        isOpen={Boolean(selectedEnquiryProduct)}
-        onClose={() => setSelectedEnquiryProduct(null)}
-      />
-
     </div>
   );
 };
-

@@ -9,8 +9,8 @@ import {
   CheckCircle2, 
   ArrowLeft,
   Banknote,
-  CreditCard,
-  Lock
+  Lock,
+  MessageCircle
 } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import { useToast } from '../contexts/ToastContext';
@@ -18,6 +18,8 @@ import { createOrder } from '../services/orderService';
 import type { CheckoutFormData } from '../types';
 import { formatCurrency } from '../utils/formatters';
 import { updateSEOMetadata } from '../utils/seo';
+import { BUSINESS_DETAILS } from '../lib/constants';
+import { getWhatsAppLink } from '../utils/whatsapp';
 
 export const Checkout: React.FC = () => {
   const navigate = useNavigate();
@@ -90,7 +92,7 @@ export const Checkout: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmitOrder = async (e: React.FormEvent) => {
+  const handleSubmitOrder = async (e: React.FormEvent, paymentMode: 'cod' | 'whatsapp' = 'cod') => {
     e.preventDefault();
 
     if (!validateForm()) {
@@ -100,9 +102,14 @@ export const Checkout: React.FC = () => {
 
     setIsSubmitting(true);
 
+    const payloadFormData: CheckoutFormData = {
+      ...formData,
+      paymentMethod: paymentMode
+    };
+
     try {
       const res = await createOrder(
-        formData,
+        payloadFormData,
         cart,
         cartSubtotal,
         deliveryCharge,
@@ -115,9 +122,37 @@ export const Checkout: React.FC = () => {
         return;
       }
 
-      showToast('Order Placed Successfully!', `Order #${res.data.order_number} confirmed.`, 'success');
+      const createdOrder = res.data;
+
+      if (paymentMode === 'whatsapp') {
+        const itemDetailsStr = cart.map((item, idx) => {
+          const itemPrice = item.product.discount_price && item.product.discount_price > 0 ? item.product.discount_price : item.product.price;
+          return `${idx + 1}. ${item.product.name} (Qty: ${item.quantity}) - ₹${itemPrice * item.quantity}`;
+        }).join('\n');
+
+        const whatsappMessage = `*NEW ORDER - ${BUSINESS_DETAILS.name}*\n` +
+          `-------------------------------\n` +
+          `*Order ID:* ${createdOrder.order_number}\n` +
+          `*Customer Name:* ${formData.customerName}\n` +
+          `*Mobile:* ${formData.customerPhone}\n` +
+          `*Delivery Address:* ${formData.deliveryAddress}, ${formData.city}, ${formData.state} - ${formData.pincode}\n` +
+          (formData.orderNotes ? `*Notes:* ${formData.orderNotes}\n` : '') +
+          `-------------------------------\n` +
+          `*ORDERED PRODUCTS:*\n${itemDetailsStr}\n` +
+          `-------------------------------\n` +
+          `*Subtotal:* ₹${cartSubtotal}\n` +
+          `*Delivery Charge:* ${deliveryCharge === 0 ? 'FREE' : `₹${deliveryCharge}`}\n` +
+          `*Grand Total:* ₹${cartGrandTotal}\n` +
+          `-------------------------------\n` +
+          `Please confirm my order. Thank you!`;
+
+        const waUrl = getWhatsAppLink(whatsappMessage);
+        window.open(waUrl, '_blank');
+      }
+
+      showToast('Order Placed Successfully!', `Order #${createdOrder.order_number} confirmed.`, 'success');
       clearCart();
-      navigate(`/order-confirmation/${res.data.order_number}`, { replace: true });
+      navigate(`/order-confirmation/${createdOrder.order_number}`, { replace: true });
     } catch (err: any) {
       showToast('Error', err?.message || 'An unexpected error occurred during order submission.', 'error');
       setIsSubmitting(false);
@@ -137,7 +172,7 @@ export const Checkout: React.FC = () => {
             <span>Back to Shopping Cart</span>
           </Link>
           <h1 className="text-3xl font-bold font-serif text-stone-900">
-            Delivery & Payment Checkout
+            Delivery & Order Checkout
           </h1>
         </div>
 
@@ -147,7 +182,7 @@ export const Checkout: React.FC = () => {
         </div>
       </div>
 
-      <form onSubmit={handleSubmitOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <form onSubmit={(e) => handleSubmitOrder(e, formData.paymentMethod === 'whatsapp' ? 'whatsapp' : 'cod')} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
         {/* LEFT FORM COLUMN */}
         <div className="lg:col-span-7 space-y-6">
@@ -156,7 +191,7 @@ export const Checkout: React.FC = () => {
           <div className="bg-white rounded-2xl border border-stone-200 p-6 shadow-2xs space-y-4">
             <h2 className="text-lg font-bold font-serif text-stone-900 flex items-center gap-2 border-b border-stone-100 pb-3">
               <User className="w-5 h-5 text-amber-800" />
-              <span>Customer Information</span>
+              <span>Customer Details</span>
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -184,7 +219,7 @@ export const Checkout: React.FC = () => {
               {/* MOBILE NUMBER */}
               <div className="space-y-1">
                 <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider">
-                  Mobile Number (For Order Updates) <span className="text-red-600">*</span>
+                  Mobile Number (Required) <span className="text-red-600">*</span>
                 </label>
                 <div className="relative">
                   <Phone className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -311,23 +346,25 @@ export const Checkout: React.FC = () => {
                   name="orderNotes"
                   value={formData.orderNotes}
                   onChange={handleChange}
-                  placeholder="e.g. Please deliver in the afternoon"
+                  placeholder="e.g. Please deliver in afternoon"
                   className="w-full p-2.5 rounded-xl border border-stone-300 text-sm text-stone-900 bg-stone-50/60 focus:ring-2 focus:ring-amber-500/20 outline-hidden font-medium"
                 />
               </div>
             </div>
           </div>
 
-          {/* SECTION 3: PAYMENT METHOD */}
+          {/* SECTION 3: PAYMENT & ORDER OPTIONS */}
           <div className="bg-white rounded-2xl border border-stone-200 p-6 shadow-2xs space-y-4">
             <h2 className="text-lg font-bold font-serif text-stone-900 flex items-center gap-2 border-b border-stone-100 pb-3">
               <Banknote className="w-5 h-5 text-amber-800" />
-              <span>Select Payment Method</span>
+              <span>Select Order & Payment Option</span>
             </h2>
 
             <div className="space-y-3">
               {/* CASH ON DELIVERY OPTION */}
-              <label className="flex items-start gap-3 p-4 rounded-xl border-2 border-amber-800 bg-amber-50/60 cursor-pointer">
+              <label className={`flex items-start gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${
+                formData.paymentMethod === 'cod' ? 'border-amber-800 bg-amber-50/70 shadow-2xs' : 'border-stone-200 hover:border-stone-300'
+              }`}>
                 <input
                   type="radio"
                   name="paymentMethod"
@@ -342,24 +379,34 @@ export const Checkout: React.FC = () => {
                     <span className="bg-emerald-700 text-white text-[10px] font-black px-2 py-0.5 rounded">RECOMMENDED</span>
                   </span>
                   <p className="text-xs text-stone-600 mt-0.5">
-                    Pay in cash when store order arrives at your delivery doorstep in Lalganj / Azamgarh.
+                    Pay cash when store order arrives at your address in Lalganj / Azamgarh.
                   </p>
                 </div>
               </label>
 
-              {/* ONLINE PAYMENT SLOT (EXTENSIBLE ARCHITECTURE) */}
-              <div className="flex items-start gap-3 p-4 rounded-xl border border-stone-200 bg-stone-50 opacity-65 cursor-not-allowed">
-                <CreditCard className="w-5 h-5 text-stone-400 shrink-0 mt-0.5" />
+              {/* WHATSAPP ORDER OPTION */}
+              <label className={`flex items-start gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${
+                formData.paymentMethod === 'whatsapp' ? 'border-emerald-600 bg-emerald-50/80 shadow-2xs' : 'border-stone-200 hover:border-stone-300'
+              }`}>
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="whatsapp"
+                  checked={formData.paymentMethod === 'whatsapp'}
+                  onChange={handleChange}
+                  className="mt-1 text-emerald-600 focus:ring-emerald-600 w-4 h-4"
+                />
                 <div>
-                  <span className="font-bold text-stone-500 text-sm flex items-center gap-2">
-                    <span>Online Payment (UPI, Cards, NetBanking)</span>
-                    <span className="bg-stone-200 text-stone-600 text-[10px] font-bold px-2 py-0.5 rounded">COMING SOON</span>
+                  <span className="font-bold text-stone-900 text-sm flex items-center gap-2">
+                    <MessageCircle className="w-4 h-4 text-emerald-600 fill-emerald-600" />
+                    <span>Order via WhatsApp Direct</span>
+                    <span className="bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2 py-0.5 rounded">INSTANT</span>
                   </span>
-                  <p className="text-xs text-stone-500 mt-0.5">
-                    Online gateway integration architecture prepared for Razorpay / UPI.
+                  <p className="text-xs text-stone-600 mt-0.5">
+                    Creates order and automatically sends order summary to shop owner via WhatsApp.
                   </p>
                 </div>
-              </div>
+              </label>
             </div>
           </div>
 
@@ -419,24 +466,38 @@ export const Checkout: React.FC = () => {
               </div>
             </div>
 
-            {/* SUBMIT BUTTON */}
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full py-4 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-extrabold text-base flex items-center justify-center gap-2 shadow-md transition-all transform active:scale-95 cursor-pointer"
-            >
-              {isSubmitting ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Placing Order...</span>
-                </>
+            {/* ACTION BUTTONS */}
+            <div className="space-y-3 pt-2">
+              {formData.paymentMethod === 'whatsapp' ? (
+                <button
+                  type="button"
+                  onClick={(e) => handleSubmitOrder(e, 'whatsapp')}
+                  disabled={isSubmitting}
+                  className="w-full py-4 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-extrabold text-base flex items-center justify-center gap-2 shadow-md transition-all transform active:scale-95 cursor-pointer"
+                >
+                  <MessageCircle className="w-5 h-5 fill-white" />
+                  <span>Order via WhatsApp Direct</span>
+                </button>
               ) : (
-                <>
-                  <CheckCircle2 className="w-5 h-5" />
-                  <span>Confirm Cash on Delivery Order</span>
-                </>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full py-4 px-6 rounded-2xl bg-amber-800 hover:bg-amber-900 disabled:opacity-50 text-white font-extrabold text-base flex items-center justify-center gap-2 shadow-md transition-all transform active:scale-95 cursor-pointer"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Placing Order...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-5 h-5" />
+                      <span>Place Order (Cash on Delivery)</span>
+                    </>
+                  )}
+                </button>
               )}
-            </button>
+            </div>
 
             <div className="text-[11px] text-stone-500 text-center space-y-1">
               <p className="flex items-center justify-center gap-1 font-medium text-stone-700">

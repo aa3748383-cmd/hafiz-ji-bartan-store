@@ -39,9 +39,9 @@ export interface CartItem {
   quantity: number;
 }
 
-export type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'out_for_delivery' | 'delivered' | 'cancelled';
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
-export type PaymentMethod = 'cod' | 'online';
+export type PaymentMethod = 'cod' | 'whatsapp' | 'online';
 
 export interface OrderItem {
   id?: string;

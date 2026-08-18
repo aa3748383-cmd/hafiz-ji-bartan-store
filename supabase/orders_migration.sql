@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
     grand_total NUMERIC(10, 2) NOT NULL CHECK (grand_total >= 0),
     payment_method TEXT NOT NULL DEFAULT 'cod',
     payment_status TEXT NOT NULL DEFAULT 'pending',
-    order_status TEXT NOT NULL DEFAULT 'pending' CHECK (order_status IN ('pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled')),
+    order_status TEXT NOT NULL DEFAULT 'pending' CHECK (order_status IN ('pending', 'confirmed', 'preparing', 'out_for_delivery', 'delivered', 'cancelled')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

@@ -14,7 +14,7 @@ import {
 import { getOrderDetailsByNumber } from '../services/orderService';
 import type { Order } from '../types';
 import { formatCurrency } from '../utils/formatters';
-import { BUSINESS_DETAILS } from '../lib/constants';
+import { getOrderWhatsAppLink } from '../utils/whatsapp';
 import { updateSEOMetadata } from '../utils/seo';
 
 export const OrderConfirmation: React.FC = () => {
@@ -36,12 +36,6 @@ export const OrderConfirmation: React.FC = () => {
       });
     }
   }, [orderNumber]);
-
-  const generateWhatsAppOrderLink = () => {
-    if (!order) return '#';
-    const text = `Hello *Hafiz Ji Bartan Store* (${BUSINESS_DETAILS.owner}),\n\nI have placed an order on your website:\n*Order Number:* ${order.order_number}\n*Name:* ${order.customer_name}\n*Phone:* ${order.customer_phone}\n*Address:* ${order.delivery_address}, ${order.city}\n*Total Amount:* ${formatCurrency(order.grand_total)} (COD)\n\nPlease confirm my order dispatch. Thank you!`;
-    return `https://wa.me/${BUSINESS_DETAILS.whatsappNumber}?text=${encodeURIComponent(text)}`;
-  };
 
   if (loading) {
     return (
@@ -105,13 +99,13 @@ export const OrderConfirmation: React.FC = () => {
         {/* PRIMARY ACTIONS */}
         <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
           <a
-            href={generateWhatsAppOrderLink()}
+            href={getOrderWhatsAppLink(order)}
             target="_blank"
             rel="noopener noreferrer"
             className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md transition-all transform hover:-translate-y-0.5"
           >
             <MessageCircle className="w-4 h-4" />
-            <span>Send Order on WhatsApp</span>
+            <span>Send Order Notification on WhatsApp</span>
           </a>
 
           <Link
@@ -155,7 +149,7 @@ export const OrderConfirmation: React.FC = () => {
           <div className="space-y-2 text-xs">
             <div className="flex justify-between text-stone-600">
               <span>Payment Mode</span>
-              <span className="font-bold text-stone-900 uppercase">Cash on Delivery (COD)</span>
+              <span className="font-bold text-stone-900 uppercase">{order.payment_method === 'cod' ? 'Cash on Delivery (COD)' : order.payment_method}</span>
             </div>
             <div className="flex justify-between text-stone-600">
               <span>Subtotal</span>

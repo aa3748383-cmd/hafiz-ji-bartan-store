@@ -18,8 +18,7 @@ import { createOrder } from '../services/orderService';
 import type { CheckoutFormData } from '../types';
 import { formatCurrency } from '../utils/formatters';
 import { updateSEOMetadata } from '../utils/seo';
-import { BUSINESS_DETAILS } from '../lib/constants';
-import { getWhatsAppLink } from '../utils/whatsapp';
+import { getOrderWhatsAppLink } from '../utils/whatsapp';
 
 export const Checkout: React.FC = () => {
   const navigate = useNavigate();
@@ -44,7 +43,7 @@ export const Checkout: React.FC = () => {
   useEffect(() => {
     updateSEOMetadata({
       title: 'Checkout - Complete Order',
-      description: 'Enter your delivery address to complete your order with Cash on Delivery at Hafiz Ji Bartan Store.',
+      description: 'Enter your delivery address to complete your order at Hafiz Ji Bartan Store.',
     });
     window.scrollTo(0, 0);
 
@@ -108,6 +107,7 @@ export const Checkout: React.FC = () => {
     };
 
     try {
+      // 1. Save order to Supabase first
       const res = await createOrder(
         payloadFormData,
         cart,
@@ -124,34 +124,16 @@ export const Checkout: React.FC = () => {
 
       const createdOrder = res.data;
 
+      // 2. Clear cart only after successful order creation
+      clearCart();
+
+      // 3. If WhatsApp payment mode selected, open pre-filled WhatsApp link
       if (paymentMode === 'whatsapp') {
-        const itemDetailsStr = cart.map((item, idx) => {
-          const itemPrice = item.product.discount_price && item.product.discount_price > 0 ? item.product.discount_price : item.product.price;
-          return `${idx + 1}. ${item.product.name} (Qty: ${item.quantity}) - ₹${itemPrice * item.quantity}`;
-        }).join('\n');
-
-        const whatsappMessage = `*NEW ORDER - ${BUSINESS_DETAILS.name}*\n` +
-          `-------------------------------\n` +
-          `*Order ID:* ${createdOrder.order_number}\n` +
-          `*Customer Name:* ${formData.customerName}\n` +
-          `*Mobile:* ${formData.customerPhone}\n` +
-          `*Delivery Address:* ${formData.deliveryAddress}, ${formData.city}, ${formData.state} - ${formData.pincode}\n` +
-          (formData.orderNotes ? `*Notes:* ${formData.orderNotes}\n` : '') +
-          `-------------------------------\n` +
-          `*ORDERED PRODUCTS:*\n${itemDetailsStr}\n` +
-          `-------------------------------\n` +
-          `*Subtotal:* ₹${cartSubtotal}\n` +
-          `*Delivery Charge:* ${deliveryCharge === 0 ? 'FREE' : `₹${deliveryCharge}`}\n` +
-          `*Grand Total:* ₹${cartGrandTotal}\n` +
-          `-------------------------------\n` +
-          `Please confirm my order. Thank you!`;
-
-        const waUrl = getWhatsAppLink(whatsappMessage);
+        const waUrl = getOrderWhatsAppLink(createdOrder);
         window.open(waUrl, '_blank');
       }
 
       showToast('Order Placed Successfully!', `Order #${createdOrder.order_number} confirmed.`, 'success');
-      clearCart();
       navigate(`/order-confirmation/${createdOrder.order_number}`, { replace: true });
     } catch (err: any) {
       showToast('Error', err?.message || 'An unexpected error occurred during order submission.', 'error');
@@ -403,7 +385,7 @@ export const Checkout: React.FC = () => {
                     <span className="bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2 py-0.5 rounded">INSTANT</span>
                   </span>
                   <p className="text-xs text-stone-600 mt-0.5">
-                    Creates order and automatically sends order summary to shop owner via WhatsApp.
+                    Saves order to database and opens WhatsApp with complete order notification for shop owner.
                   </p>
                 </div>
               </label>
@@ -475,8 +457,17 @@ export const Checkout: React.FC = () => {
                   disabled={isSubmitting}
                   className="w-full py-4 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-extrabold text-base flex items-center justify-center gap-2 shadow-md transition-all transform active:scale-95 cursor-pointer"
                 >
-                  <MessageCircle className="w-5 h-5 fill-white" />
-                  <span>Order via WhatsApp Direct</span>
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Saving Order...</span>
+                    </>
+                  ) : (
+                    <>
+                      <MessageCircle className="w-5 h-5 fill-white" />
+                      <span>Order via WhatsApp Direct</span>
+                    </>
+                  )}
                 </button>
               ) : (
                 <button

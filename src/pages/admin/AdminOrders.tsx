@@ -5,13 +5,15 @@ import {
   Eye, 
   Phone, 
   X,
-  RefreshCw
+  RefreshCw,
+  MessageCircle
 } from 'lucide-react';
 import { getOrders, updateOrderStatus, getOrderStats } from '../../services/orderService';
 import type { Order, OrderStatus, OrderStats } from '../../types';
 import { formatCurrency } from '../../utils/formatters';
 import { useToast } from '../../contexts/ToastContext';
 import { AdminSidebar } from '../../components/admin/AdminSidebar';
+import { getOrderWhatsAppLink } from '../../utils/whatsapp';
 
 export const AdminOrders: React.FC = () => {
   const { showToast } = useToast();
@@ -223,13 +225,24 @@ export const AdminOrders: React.FC = () => {
                           {new Date(ord.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                         </td>
                         <td className="py-3 px-4 text-right">
-                          <button
-                            onClick={() => setSelectedOrder(ord)}
-                            className="px-3 py-1 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-bold transition-colors inline-flex items-center gap-1 cursor-pointer"
-                          >
-                            <Eye className="w-3.5 h-3.5 text-amber-400" />
-                            <span>Details</span>
-                          </button>
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => setSelectedOrder(ord)}
+                              className="px-3 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-bold transition-colors inline-flex items-center gap-1 cursor-pointer"
+                            >
+                              <Eye className="w-3.5 h-3.5 text-amber-400" />
+                              <span>Details</span>
+                            </button>
+                            <a
+                              href={getOrderWhatsAppLink(ord)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-1.5 rounded-lg bg-emerald-950 hover:bg-emerald-900 border border-emerald-800 text-emerald-400 transition-colors"
+                              title="Send Order Notification via WhatsApp"
+                            >
+                              <MessageCircle className="w-3.5 h-3.5" />
+                            </a>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -261,26 +274,40 @@ export const AdminOrders: React.FC = () => {
               </button>
             </div>
 
-            {/* STATUS UPDATE DROPDOWN */}
-            <div className="p-4 rounded-2xl bg-stone-950 border border-stone-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div>
-                <span className="text-xs font-bold text-stone-400 uppercase tracking-wider block">Update Order Status</span>
-                <span className="text-xs text-stone-500">Change status stage for customer order</span>
+            {/* STATUS UPDATE DROPDOWN & WHATSAPP ACTION */}
+            <div className="p-4 rounded-2xl bg-stone-950 border border-stone-800 space-y-3">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div>
+                  <span className="text-xs font-bold text-stone-400 uppercase tracking-wider block">Update Order Status</span>
+                  <span className="text-xs text-stone-500">Change status stage for customer order</span>
+                </div>
+
+                <select
+                  value={selectedOrder.order_status}
+                  onChange={(e) => handleStatusChange(selectedOrder.id, e.target.value as OrderStatus)}
+                  disabled={isUpdating}
+                  className="px-4 py-2 rounded-xl bg-stone-900 border border-stone-700 text-xs font-bold text-white focus:border-amber-500 outline-hidden cursor-pointer"
+                >
+                  <option value="pending">Pending</option>
+                  <option value="confirmed">Confirmed</option>
+                  <option value="preparing">Preparing</option>
+                  <option value="out_for_delivery">Out for Delivery</option>
+                  <option value="delivered">Delivered</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
               </div>
 
-              <select
-                value={selectedOrder.order_status}
-                onChange={(e) => handleStatusChange(selectedOrder.id, e.target.value as OrderStatus)}
-                disabled={isUpdating}
-                className="px-4 py-2 rounded-xl bg-stone-900 border border-stone-700 text-xs font-bold text-white focus:border-amber-500 outline-hidden cursor-pointer"
-              >
-                <option value="pending">Pending</option>
-                <option value="confirmed">Confirmed</option>
-                <option value="preparing">Preparing</option>
-                <option value="out_for_delivery">Out for Delivery</option>
-                <option value="delivered">Delivered</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
+              <div className="pt-2 border-t border-stone-800 flex justify-end">
+                <a
+                  href={getOrderWhatsAppLink(selectedOrder)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full sm:w-auto px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs inline-flex items-center justify-center gap-2 transition-all shadow-sm"
+                >
+                  <MessageCircle className="w-4 h-4 fill-white" />
+                  <span>Send Order Notification to Admin / WhatsApp</span>
+                </a>
+              </div>
             </div>
 
             {/* CUSTOMER & ADDRESS DETAILS */}

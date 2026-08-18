@@ -104,13 +104,21 @@ export const Checkout: React.FC = () => {
 
     setIsSubmitting(true);
 
+    // Pre-open a tab synchronously during user click event to satisfy browser popup blockers
+    let waWindow: Window | null = null;
+    try {
+      waWindow = window.open('about:blank', '_blank');
+    } catch (err) {
+      console.warn('Browser prevented pre-opening popup window:', err);
+    }
+
     const payloadFormData: CheckoutFormData = {
       ...formData,
       paymentMethod: paymentMode
     };
 
     try {
-      // 1. Insert order into Supabase first
+      // 1. Insert order into Supabase FIRST
       const res = await createOrder(
         payloadFormData,
         cart,
@@ -119,8 +127,11 @@ export const Checkout: React.FC = () => {
         cartGrandTotal
       );
 
-      // 2. If database creation fails, do NOT open WhatsApp and DO NOT clear cart
+      // 2. If database creation fails, close popup tab and DO NOT clear cart
       if (res.error || !res.data) {
+        if (waWindow && !waWindow.closed) {
+          waWindow.close();
+        }
         showToast('Order Placement Failed', res.error || 'Failed to place order. Please try again.', 'error');
         setIsSubmitting(false);
         return;
@@ -128,20 +139,32 @@ export const Checkout: React.FC = () => {
 
       const createdOrder = res.data;
 
-      // 3. Clear cart only after successful order creation in Supabase
-      clearCart();
+      // 3. Build WhatsApp URL ONLY after Supabase confirms order creation with valid Order ID
+      const waUrl = getOrderWhatsAppLink(createdOrder);
 
-      // 4. Open WhatsApp for store admin (919838559670) with pre-filled message
-      try {
-        const waUrl = getOrderWhatsAppLink(createdOrder);
-        window.open(waUrl, '_blank');
-      } catch (waErr) {
-        console.warn('Could not auto-open WhatsApp popup:', waErr);
+      // 4. Open/redirect to store admin WhatsApp number (919838559670)
+      if (waWindow && !waWindow.closed) {
+        waWindow.location.href = waUrl;
+      } else {
+        try {
+          window.open(waUrl, '_blank');
+        } catch (e) {
+          console.warn('Popup blocked, user can click Send Order on WhatsApp on confirmation page:', e);
+        }
       }
 
+      // 5. Clear cart ONLY after WhatsApp URL has been generated
+      clearCart();
+
       showToast('Order Placed Successfully!', `Order #${createdOrder.order_number} confirmed.`, 'success');
-      navigate(`/order-confirmation/${createdOrder.order_number}`, { replace: true });
+      navigate(`/order-confirmation/${createdOrder.order_number}`, { 
+        replace: true, 
+        state: { order: createdOrder, autoOpenedWhatsApp: true } 
+      });
     } catch (err: any) {
+      if (waWindow && !waWindow.closed) {
+        waWindow.close();
+      }
       showToast('Error', err?.message || 'An unexpected error occurred during order submission.', 'error');
       setIsSubmitting(false);
     }
@@ -480,7 +503,7 @@ export const Checkout: React.FC = () => {
                     </>
                   ) : (
                     <>
-                      <MessageCircle className="w-5 h-5 fill-white text-emerald-600" />
+                      <MessageCircle className="w-5 h-5 text-white" />
                       <span>Order via WhatsApp Direct</span>
                     </>
                   )}

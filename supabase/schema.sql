@@ -94,10 +94,11 @@ CREATE POLICY "Authenticated admin can delete categories"
 
 -- PRODUCTS RLS POLICIES
 DROP POLICY IF EXISTS "Public can view available products" ON public.products;
-CREATE POLICY "Public can view available products"
+DROP POLICY IF EXISTS "Public can view products" ON public.products;
+CREATE POLICY "Public can view products"
     ON public.products
     FOR SELECT
-    USING (is_available = true OR auth.role() = 'authenticated');
+    USING (true);
 
 DROP POLICY IF EXISTS "Authenticated admin can insert products" ON public.products;
 CREATE POLICY "Authenticated admin can insert products"

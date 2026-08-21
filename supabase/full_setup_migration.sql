@@ -133,11 +133,12 @@ CREATE POLICY "Admin only delete categories"
     USING (public.is_admin());
 
 -- PRODUCTS RLS POLICIES
--- Public: Anyone can view in-stock products; Admins can view all products
+-- Public: Anyone can view products (in-stock & out-of-stock); Admins can modify products
 DROP POLICY IF EXISTS "Public can view available products" ON public.products;
-CREATE POLICY "Public can view available products"
+DROP POLICY IF EXISTS "Public can view products" ON public.products;
+CREATE POLICY "Public can view products"
     ON public.products FOR SELECT
-    USING (is_available = true OR public.is_admin());
+    USING (true);
 
 -- Admin Only: Insert products
 DROP POLICY IF EXISTS "Admin only insert products" ON public.products;

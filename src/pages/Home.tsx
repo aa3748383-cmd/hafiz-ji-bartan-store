@@ -18,7 +18,7 @@ import {
 import { BUSINESS_DETAILS } from '../lib/constants';
 import { getWhatsAppLink, getPhoneCallLink, getDirectionsLink } from '../utils/whatsapp';
 import { getCategories } from '../services/categoryService';
-import { getFeaturedProducts } from '../services/productService';
+import { getFeaturedProducts, getProducts } from '../services/productService';
 import type { Category, Product } from '../types';
 import { ProductCard } from '../components/products/ProductCard';
 import { ProductGridSkeleton } from '../components/common/SkeletonLoader';
@@ -43,7 +43,16 @@ export const Home: React.FC = () => {
       ]);
 
       if (catRes.data) setCategories(catRes.data.slice(0, 8));
-      if (prodRes.data) setFeaturedProducts(prodRes.data);
+
+      if (prodRes.data && prodRes.data.length > 0) {
+        setFeaturedProducts(prodRes.data);
+      } else {
+        // Fallback to general available products if no products are marked as featured yet
+        const availableRes = await getProducts({ availableOnly: true });
+        if (availableRes.data) {
+          setFeaturedProducts(availableRes.data.slice(0, 6));
+        }
+      }
       setLoading(false);
     };
 

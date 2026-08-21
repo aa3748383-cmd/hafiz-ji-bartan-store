@@ -180,19 +180,18 @@ export const getProducts = async (filters?: Partial<ProductFilters>): Promise<{ 
 
     const { data, error } = await withTimeout(query);
 
-    if (error) throw error;
-    
-    if (!data || data.length === 0) {
-      if (!filters?.search && !filters?.categoryId) {
-        return { data: INITIAL_DEMO_PRODUCTS, error: null };
-      }
-      return { data: [], error: null };
+    if (error) {
+      console.error('[Supabase getProducts Error]:', error);
+      throw error;
     }
 
-    return { data: data as Product[], error: null };
+    return { data: (data as Product[]) || [], error: null };
   } catch (err: any) {
-    console.warn('Supabase query failed/timed out, using demo products fallback:', err?.message || err);
-    return { data: INITIAL_DEMO_PRODUCTS, error: null };
+    console.error('[Supabase getProducts Exception]:', err?.message || err);
+    if (!isSupabaseConfigured()) {
+      return { data: INITIAL_DEMO_PRODUCTS, error: null };
+    }
+    return { data: [], error: err?.message || 'Failed to fetch products' };
   }
 };
 
@@ -214,9 +213,12 @@ export const getProductBySlug = async (slug: string): Promise<{ data: Product | 
     if (error) throw error;
     return { data: data as Product, error: null };
   } catch (err: any) {
-    console.warn('Supabase product slug query failed/timed out, using fallback:', err?.message || err);
-    const fallback = INITIAL_DEMO_PRODUCTS.find(p => p.slug === slug) || null;
-    return { data: fallback, error: null };
+    console.error('[Supabase getProductBySlug Error]:', err?.message || err);
+    if (!isSupabaseConfigured()) {
+      const fallback = INITIAL_DEMO_PRODUCTS.find(p => p.slug === slug) || null;
+      return { data: fallback, error: null };
+    }
+    return { data: null, error: err?.message || 'Product not found' };
   }
 };
 
